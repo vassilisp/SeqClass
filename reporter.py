@@ -9,7 +9,7 @@ class Reporter:
         if this.level>0:
             print(string)
             
-        this.msg += string
+        this.msg += string + "   ||   "
         
     def new_report(this, string):
         msg = ''
@@ -21,5 +21,8 @@ class Reporter:
             print(msg)
         
         this.msg += '/n' + msg
+    
+    def getReport(this):
+        return this.msg
         
         

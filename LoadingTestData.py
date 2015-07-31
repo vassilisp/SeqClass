@@ -3,14 +3,13 @@ import DBconnection
 import scipy as sp
 import numpy as np
 
-from sklearn.preprocessing import label_binarize
 
 
 def loadTestData(processID, divider):
     con = DBconnection.getConnection()
     cur = con.cursor()
 
-    q = "select userId, group_concat(refererID,targetID order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by userId"
+    q = "select userId, group_concat(refererID,targetID order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by userId, timestamp"
     
     q = q.replace(":processID", processID, 1).replace(":divider", divider, 1)
 
@@ -26,11 +25,11 @@ def loadTestData(processID, divider):
     sequencies = A[:,1]
     #----------------------------------
     
-    return labels, sequencies
+    return sequencies, labels
 
     
 if __name__ == '__main__':
     
-    labels, sequencies = loadTestData('pro32240', 'clientId')
+    sequencies, labels = loadTestData('pro307532', 'clientId')
     
     print(labels.shape, sequencies.shape)

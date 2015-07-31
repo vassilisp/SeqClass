@@ -15,7 +15,10 @@ from queries import Queries
 import DBconnection
 import Globals
 
-def run(processID):
+def run(processID, exeTime):
+    
+    if __name__ == "__main__":
+        print('yeah')
     #---------------------------
     #connet to the database and fetch results
     connection = DBconnection.getConnection()
@@ -93,12 +96,15 @@ def run(processID):
     #----------
 
     
-    fig3 = plt.figure()
-    x = range(len(A))
+    fig2 = plt.figure()
+    x = range(1, len(A)+1)
     plt.bar(x,A, align='center')
     plt.xticks(x)
+    plt.title("Totan Transitions Per User in the Dataset")
     
-    path = Globals.getProcessIDPath(processID)
+    
+    
+    path = Globals.getProcessIDPath(processID, exeTime)
     
     filename = processID + '_freedman_histo_TransPerUser.svg'
     fig.savefig(path + filename, format='svg', dpi=1200)
@@ -106,4 +112,6 @@ def run(processID):
     filename1 = processID + '_20binHisto_TransPerUser'
     fig1.savefig(path + filename1, format = 'svg', dpi=1200)
     
+    filename2 = processID +'_totalTransPerUser' + '.svg'
+    fig2.savefig(path + filename2, format = 'svg', dpi=1200)
     return reporter

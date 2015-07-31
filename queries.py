@@ -37,4 +37,13 @@ class Queries:
                     ORDER BY userId, dateID
                 """
         return query.replace(":processID", processID,1)
+        
+    def getTransPerUserPerClientId(processID):
+        query = """
+                SELECT userId, clientId, count(refererID)
+                FROM Preprocess where processID = ':processID'
+                GROUP BY clientId
+                ORDER BY userId
+                """
+        return query.replace(":processID", processID, 1)
  

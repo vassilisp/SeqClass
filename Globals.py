@@ -1,10 +1,18 @@
 
 import os,errno
+import time
 
-def mkdir_p(folder):
+def mkdir_LR(path):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print('Creating PATH:', directory)
+    
+def mkdir_RR(folder):
     directory = getResultsPATH() + folder
     if not os.path.exists(directory):
         os.makedirs(directory)
+        print('<<<<<<<><> CREATING PATH:', directory)
+    return directory
 
 
 def getResultsPATH():
@@ -19,6 +27,9 @@ def getResultsPATH():
     
     return directory + '/'
     
-def getProcessIDPath(processID):
-    return getResultsPATH() + processID + '/'
+def getProcessIDPath(processID, exeTime):
+    path = processID + '_'+ exeTime + '/'
+    full_path = mkdir_RR(path)
+    
+    return full_path
     
