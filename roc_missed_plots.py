@@ -12,7 +12,7 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn import metrics
 import matplotlib.pyplot as plt
 
-def process_ALL(X, Y, estimators, path, method):
+def process_ALL(X_validation, Y_validation, estimators, path, method):
     
     lb = LabelBinarizer()
     y_real = lb.fit_transform(Y)

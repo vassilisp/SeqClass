@@ -1,6 +1,11 @@
+import Globals
 class Reporter:
     msg = ''
     level = 1
+
+
+    def __init__(self, level = 1):
+        self.level = level
 
     def new_report(this, string):
         msg = '\n'
@@ -12,6 +17,9 @@ class Reporter:
             print(msg)
         
         this.msg +=  msg
+        
+    def eraseReport(this):
+        this.msg = ''
 
     def subreport(this, title):
         msg = '\n'        
@@ -45,6 +53,8 @@ class Reporter:
     def getReport(this):
         return this.msg
         
-    def saveReport(this, path):
-        with open(path, "w") as text_file:
+    def saveReport(this, path, filename):
+        #make path and file first
+        Globals.mkdir_LR(path)
+        with open(path+filename, "w") as text_file:
             print(this.getReport(), file=text_file)
