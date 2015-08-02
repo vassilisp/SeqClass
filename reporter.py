@@ -3,10 +3,6 @@ class Reporter:
     msg = ''
     level = 1
 
-
-    def __init__(self, level = 1):
-        self.level = level
-
     def new_report(this, string):
         msg = '\n'
         msg += '='*30

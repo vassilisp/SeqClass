@@ -15,7 +15,7 @@ def loadTestData(processID, divider, tokens):
     else:
         token_string = token_string.replace('XxX', '')
     
-    q = "select userId, group_concat(&&TOKENS&& order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by userId, timestamp"
+    q = "select userId, group_concat(&&TOKENS&& order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by timestamp"
     
     q = q.replace('&&TOKENS&&', token_string)    
     q = q.replace(":processID", processID, 1).replace(":divider", divider, 1)

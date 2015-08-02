@@ -12,6 +12,9 @@ import json
 
 from reporter import Reporter
 
+import numpy as np
+
+from operator import itemgetter
 from sklearn.svm import SVC, LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
@@ -104,7 +107,7 @@ def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
         if SELECT_PIPELINE == 'full':
             #SUPER EXPENSIVE SEARCH - probably better using RandomizedGridCV
             
-            #DRS = (PCA(), TruncatedSVD(), RandomizedPCA(), FastICA(), NMF(), EMPTY())  
+            #DRS = (PCA(), TruncatedSVD(), RandomizedPCA(), FastICA(), NMF(), noDR())  
 
             DRS = get_DRS()                
             for DR in DRS:
@@ -345,8 +348,8 @@ def get_estimators():
 
 #%%Dimensionality reduction parameters
 def get_DRS():
-    empty = EMPTY()
-    return (emtpy, TruncatedSVD(), PCA())
+    empty = noDR()
+    return (empty, TruncatedSVD(), PCA())
 def get_dr_params():
     dr_params = {}
     dr_params = {'dr__n_component': (100, 1500)# 'mle',100,500,1000,3000
@@ -356,7 +359,7 @@ def get_dr_params():
 #%%
 # Utility function to report best scores
 def report(grid_scores,name='', pipe_de= '', dr='', n_top=5):
-    a = '\n' + 'Report for best estimator '+ name + ' in' + pipe_desc 
+    a = '\n' + 'Report for best estimator '+ name + ' in' + pipe_de
 
     a = 'Best estimator uses DR : ' + str(dr) + '\n'
     top_scores = sorted(grid_scores, key=itemgetter(1), reverse=True)[:n_top]
@@ -374,9 +377,9 @@ def report(grid_scores,name='', pipe_de= '', dr='', n_top=5):
 #%%
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.cross_validation import FitFailedWarning
-from sklearn.decomposition import PCA
 
-class EMPTY(BaseEstimator, TransformerMixin):
+
+class noDR(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
     def fit_transform(self, X, y=None, **fit_params):
@@ -387,9 +390,11 @@ class EMPTY(BaseEstimator, TransformerMixin):
         
     def set_params(self, **kargs):
         if 'n_components' in kargs:
-            if kargs['n_components'] != 100:
+            if kargs['n_components'] != 1000:
                 raise FitFailedWarning
-        return {'EMPTY': 'Panopoulos ;)'}
+        return {'noDR': 'Panopoulos ;)'}
+    
+    
 
         
 #%%

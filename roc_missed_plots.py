@@ -11,9 +11,75 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import metrics
 import matplotlib.pyplot as plt
+from time import time
+from sklearn import metrics
+import numpy as np
 
-def process_ALL(X_validation, Y_validation, estimators, path, method):
+def EVALUATE_estimators(X_develop, Y_develop, X_validation, Y_validation, estimators, path, method):
+    train_times = []
+    estimation_times = []
+    labels = []
+    for est_descr, estimator in estimators.items():
+        t0 = time()
+        estimator.fit(X_develop, Y_develop)
+        t1 = time() - t0        
+        train_times.append(t1)
+        
+        t0 = time()
+        y_predict = estimator.predict(X_validate, Y_validate)
+        t1 = time()-t0
+        
+        y_predictions.append(y_predict)        
+        estimation_times.append(t1)
+        time_labels.append(est_descr)
+                
+    graph_train_test_times(train_times, estimation_times, labels)
+    graph_confusion(Y_true, y_predictions, labels, path)   
+        
+        
+        
+        
+def graph_train_test_times(train_times, test_times, time_labels):
+    N = len(time_labels)
     
+    ind = np.arange(N)
+    width = 0.35
+    
+    p1 = plt.bar(ind, train_times, width, color='r')
+    p2 = plt.bar(ind, test_times, width, color='y', bottom = train_times)
+    
+    plt.ylabel('time (ms)')
+    plt.title('Overall train/test times')
+    plt.xticks(ind+width/2., labels, rotations=45)
+    
+    plt.legend( (p1[0],p2[0]), ('train', 'test') )
+    
+    return plt
+    
+
+    
+    
+def graph_confusion(Y_true, Y_predictions, labels, path):
+    
+    for num, y_predict in enumerate(Y_predictions):
+        cm = metrics.confusion_matrix(Y_true, y_predict)
+        plt.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
+        plt.title('Confusion matrix of ' + labels[num])
+        plt.colorbar()
+        
+        tick_marks = np.arange(len(np.unique(Y_true)))
+        plt.xticks(tick_marks, np.unique(Y_true), rotation=45)
+        plt.yticks(tick_marks, np.unique(Y_true))
+        plt.tight_layout()
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        
+        savefig(plt, path+'confusion/', labels[num])
+
+    
+def graph_roc_miss(X_validation, Y_validation, estimators, path, method):
+    
+    figures = {}
     lb = LabelBinarizer()
     y_real = lb.fit_transform(Y)
     
@@ -155,3 +221,22 @@ def SCORER_GRAPHER(X, Y, estimator, path, method):
     
 def savefig(plt, path, filename):
     plt.savefig(path + filename, dpi=1200, format='svg' )
+    
+#%%
+if __name__ == "__main__":
+    from sklearn.datasets import load_iris
+    
+    data = load_iris()
+    X = data.data
+    Y = data.target
+    
+    from sklearn.naive_bayes import MultinomialNB
+    from sklearn.svm import SVC
+    
+    estimators = [MultinomialNB(), SVC()]
+    best = {}   
+    for cnt, estimator in enumerate(estimators):
+        estimator.fit(X, Y)
+        best.update({'estim' + str(cnt):estimator})
+        
+    
