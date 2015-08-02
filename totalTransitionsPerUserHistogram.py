@@ -86,7 +86,7 @@ def run(processID, exeTime):
     
     from reporter import Reporter
     reporter = Reporter()
-    reporter.report('Transitions per User')
+    reporter.subreport('Transitions per User')
     reporter.report('mean: ' + str(mean))
     reporter.report("STD: " + str(sigma))
     

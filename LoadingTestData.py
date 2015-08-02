@@ -5,12 +5,19 @@ import numpy as np
 
 
 
-def loadTestData(processID, divider):
+def loadTestData(processID, divider, tokens):
     con = DBconnection.getConnection()
     cur = con.cursor()
 
-    q = "select userId, group_concat(refererID,targetID order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by userId, timestamp"
+    token_string = 'refererIDXxX, targetIDXxX'
+    if tokens!=0:
+        token_string = token_string.replace('XxX', str(tokens))
+    else:
+        token_string = token_string.replace('XxX', '')
     
+    q = "select userId, group_concat(&&TOKENS&& order by timestamp asc separator ' ') FROM Preprocess where processID=':processID' group by :divider order by userId, timestamp"
+    
+    q = q.replace('&&TOKENS&&', token_string)    
     q = q.replace(":processID", processID, 1).replace(":divider", divider, 1)
 
     print(cur.execute("Set group_concat_max_len=100000;"))

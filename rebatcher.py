@@ -17,7 +17,11 @@ def single_rebatcher(X, Y, batchN, pardon = 0.25):
     
     #--check if we will use the clientId for divider (divider 0)
     if(batchN == 0):
-        return X,Y
+        from reporter import Reporter
+        report = Reporter()
+        report.new_report('Rebatcher report')
+        report.report('using full sequence (clientId)')
+        return X,Y, report
     
     
     if pardon == 0 or pardon == None:
@@ -33,6 +37,7 @@ def single_rebatcher(X, Y, batchN, pardon = 0.25):
         
         batchInA = numTrans//batchN
         
+        stop = 0
         for j in range(batchInA):
             start = j*batchN
             stop = (j+1) * batchN
@@ -43,7 +48,7 @@ def single_rebatcher(X, Y, batchN, pardon = 0.25):
             Y_buf.append(Y[i])
         
         x_remaining = A[stop:]
-        if len(x_remaining) <= pardon_down * batchN:
+        if (len(x_remaining) <= pardon_down * batchN) and (batchInA != 0):
             X_buf[-1] = X_buf[-1] + ' ' + ' '.join(x_remaining)
         elif len(x_remaining) >= pardon_up * batchN:
             X_buf.append(' '.join(x_remaining))
@@ -52,7 +57,20 @@ def single_rebatcher(X, Y, batchN, pardon = 0.25):
     X_buf = np.asarray(X_buf)
     Y_buf = np.asarray(Y_buf)
     
-    return X_buf, Y_buf
+    old_total=0
+    for old,seq in enumerate(X):
+        old_total += len(seq.split()) + 1
+
+    new_total=0    
+    for new,seq in enumerate(X_buf):
+        new_total += len(seq.split()) + 1
+        
+    from reporter import Reporter
+    report = Reporter()
+    report.new_report('Rebatcher report')
+    report.report('old sample --total transitions: ,' +  str(old_total) + '-- total sequences: ,' + str(old))
+    report.report('new sample --total transitions: ,' +  str(new_total) + '-- total sequences: ,' + str(new))
+    return X_buf, Y_buf, report
 
 def getBatchStatistics(X, Y):
     pass

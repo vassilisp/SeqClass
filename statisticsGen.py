@@ -18,6 +18,7 @@ class StatisticsGen:
         this.processID = processID
         this.divider = divider
         this.exeTime = exeTime
+        this.reporter.new_report("Statistics of " + processID + " at " + exeTime)
         
         this.X, this.Y = loadTestData(processID, divider)
         
@@ -39,7 +40,8 @@ class StatisticsGen:
         
 
     def totalTransPerUser(this):
-        totalTransitionsPerUserHistogram.run(this.processID, this.exeTime)
+        report = totalTransitionsPerUserHistogram.run(this.processID, this.exeTime)
+        this.reporter.concat_report(report)
 
 
 
@@ -64,11 +66,18 @@ class StatisticsGen:
         ax.set_xticks(x)
         ax.set_xticklabels(A)
         
-        
+        this.reporter.subreport('Total transitions per day')
+        for day in zip(A,B):        
+            this.report.report(str(day))
+            
         this.savefig(fig, 'totalTransitionsperDay')
 
 
-    def transPerSequence(this, X = this.X, Y=this.Y):
+    def transPerSequence(this,X=None, Y=None):
+        if (X == None or Y == None):
+            X = this.X
+            Y = this.Y
+        
         a = np.ones_like(Y)
         for i,seq in enumerate(X):
             a[i] = seq.count(' ')
@@ -78,8 +87,8 @@ class StatisticsGen:
         meanTrans = a.mean()
         stdTrans = a.std()
         
-        this.reporter.new_report('Total transitions per Sequence')
-        this.reporter.report('total transitions:' + str(totalTrans))
+        this.reporter.subreport('Tranitions per Sequence')
+        this.reporter.report('total transitions per sequence:' + str(totalTrans))
         this.reporter.report('mean:' + str(meanTrans))
         this.reporter.report('std:' + str(stdTrans))
         
@@ -122,6 +131,10 @@ class StatisticsGen:
         plt.xticks(x)
         plt.xlim = (0,x.max())
         this.savefig(fig, 'sequencesPerUser_' + this.divider)
+        
+        this.reporter.subreport('Sequences per user')
+        for tmp in cnt:        
+            this.reporter.report(str(tmp))
         
     def transPerUserPerClientId(this):
         #to TEST

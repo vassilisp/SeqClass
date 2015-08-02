@@ -3,16 +3,17 @@ import os,errno
 import time
 
 def mkdir_LR(path):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        print('Creating PATH:', directory)
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print('Creating PATH:', path)
+    return path + '/'
     
 def mkdir_RR(folder):
     directory = getResultsPATH() + folder
     if not os.path.exists(directory):
         os.makedirs(directory)
         print('<<<<<<<><> CREATING PATH:', directory)
-    return directory
+    return directory + '/'
 
 
 def getResultsPATH():
