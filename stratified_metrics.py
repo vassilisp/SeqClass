@@ -18,7 +18,7 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.multiclass import OneVsRestClassifier
 from scipy import interp
 
-from Globals import clfColors
+from Globals import clfColors, mkdir_LR
 
 import matplotlib.pyplot as plt
 import sys
@@ -117,7 +117,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
                 y_true = lb.transform(Y[test])
                 fpr, tpr, _ = metrics.roc_curve(y_true.ravel(), y_pb.ravel())
                 mean_tpr += interp(mean_fpr,fpr,tpr)
-                mean_tpr[0]=0
+                mean_tpr[0]=0.001
                 #+++
                 
                 print('predict in:', t_predict[i])
@@ -185,7 +185,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             rocsax.plot([0,1],[0,1], 'b--', lw=0.8)
             
             
-            graph_confusion(y_real, y_prediction, estim_descr, '')
+            graph_confusion(y_real, y_prediction, estim_descr, path)
         except:
             print(sys.exc_info())
     #%%              
@@ -194,6 +194,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     rocsax.set_xlabel('FALSE POSITVE (%)')
     rocsax.set_ylabel('TRUE POSITIVE (%)')
     rocsax.grid(b=True ,which='major')
+    rocs.tight_layout()
 
     #rocsax.set_xscale('log')
     try:
@@ -201,13 +202,15 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
         timebax.set_ylabel('time (s)')
         timebax.set_xticks(np.arange(0, len(labels),1)+0.3)        
         timebax.set_xticklabels(labels, rotation=45)
+        timebars.tight_layout()
     except:
         pass
     falseax.plot([0,1], [1,0], 'b--' , lw =0.6)
     falseax.set_ylabel('MISSING ALARMS (%)')
     falseax.set_xlabel('FALSE ALARMS (%)')
     falseax.legend(loc='best')
-    falseax.grid(b=True ,which='major')    
+    falseax.grid(b=True ,which='major')
+    false.tight_layout()    
     falseLax.set_ylabel('MISSING ALARMS (%)')
     falseLax.set_xlabel('FALSE ALARMS (%)')
     falseLax.legend(loc='best')
@@ -215,15 +218,24 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     falseLax.set_xscale('log')
     falseLax.grid(b=True ,which='minor')
     falseLax.grid(b=True ,which='major')
+    falseL.tight_layout()
     
     scorax.set_ylabel('ACCURACY (jaccard similarity)')
     scorax.set_xticks(np.arange(0, len(labels),1)+0.3)        
     scorax.set_xticklabels(labels, rotation=45)
-
-    #fdescr = proID +'_' + div +'_'+ func_descr + '_'
-    #savefig(fig1, path,  fdescr + 'roc_curve.svg')
-    #savefig(fig2, path,  fdescr + 'missed_alarms_log.svg')
-    #savefig(fig3, path,  fdescr + 'missed_alarms.svg')
+    scor.tight_layout()
+    
+    savefig(rocs, path,  method + '_roccurve.svg')
+    savefig(falseL, path,  method + '_missedalarms_log.svg')
+    savefig(false, path,  method + '_missedalarms.svg')
+    
+    rocsax.set_xscale('log')
+    rocs.tight_layout()
+    savefig(rocs, path,  method + '_roc_curvelog.svg')
+    
+    savefig(scor, path, method + '_scores.svg')
+    savefig(timebars, path, method + '_traintesttimes.svg')    
+    
 
 #%%
 
@@ -269,11 +281,11 @@ def graph_confusion(Y_true, Y_predict, label, path):
     plt.colorbar()    
 
     
-    #savefig(plt, path+'confusion/', labels)
+    savefig(plt, path+'confusion/', label + '.svg')
 #%%
 def savefig(plt, path, filename):
-    #plt.savefig(path + filename, dpi=1200, format='svg' )
-    pass
+    mkdir_LR(path)
+    plt.savefig(path + filename, dpi=1200, format='svg' )
 
     
 #%%
@@ -294,6 +306,8 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
     
     plt.ylabel('Scores')
     plt.xticks(np.arange(0, len(labels),1)+0.3, labels, rotation=45)
+    
+    savefig(plt, path,  method + '5topscores.svg')
     
     
 if __name__ == "__main__":

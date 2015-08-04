@@ -151,132 +151,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
     
     #%%
     """
-def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
-    
-    X = X_develop
-    Y = Y_develop
-    
-    generated_pipelines = getPipelines(Y, SELECT_PIPELINE)
-    
-    kept_all_best_estimators = {}
-    kept_all_best_params = {}
-    kept_all_best_full_params = {}
-    kept_all_top_scores = {}
-    
-    report = Reporter()
-    """
-    if len(generated_pipelines)==1:
-        print("OK")
-    else:
-        print('Something went wrong,TOO MANY PIPES generating the pipelines')
-        print('ONLY ONE MUST BE SET')
-        exit
-    """
-    for pipe_desc, gen_pipes in generated_pipelines.items():
-        if len(gen_pipes)<1:
-            continue;
-        print('\n'*10)
-        print('##'*40)
-        print('RUNNING PIPE :', pipe_desc)
-        print('##'*40)
-                
-        report.new_report('RUNNING PIPE: ' + pipe_desc)
-        
-        for cnt, estimator_pipe in enumerate(gen_pipes):        
-            print('=='*40)
-            print('RUNNING PIPE :', pipe_desc)
-            print('__'*40)
-            print(estimator_pipe)
-            print('=='*40)            
-            
-            
-                
-            t0 = time()
-            estimator_pipe.fit(X,Y)
-            t1 = time()-t0
-            
 
-            estim = clone(estimator_pipe.estimator)
-            best_params = estimator_pipe.best_params_.copy()
-            #the best estimator is the estimator of the pipe set with the best
-            #parameters of the pipe
-            best_estimator = estim.set_params(**best_params)
-
-            clf_name = findclf_name(best_estimator)
-            report.subreport('Tested estimator : ' + clf_name + ' in ' + pipe_desc + ' pipe , time:' + str(t1))
-            
-            try:
-                best_estimator.set_params(**{'clf__estimator__probability': True})
-            except:
-                pass
-            
-            if clf_name == 'SVC':
-                try:
-                    clf_name += '_' + best_estimator.named_steps['clf'].kernel
-                except:
-                    print('probably not an SVC')
-
-            
-            steps = best_estimator.named_steps
-            dr_dic = {}            
-            dr_name = ''            
-            if 'dr' in steps:
-                dr_dic = {'dr':str(steps['dr'])}
-                dr_name = str(steps['dr'])
-            
-            best_full_params = best_params.copy()
-            best_full_params.update(dr_dic)
-            best_full_params.update({'clf':clf_name})
-            
-
-            pipe_path = div_path + pipe_desc + '_pipe_details/'
-            filename_starter = str(proID) + '_' + str(tokens) + '_' + str(div) + '_'           
-            filename_descr = pipe_desc + '_' +dr_name +'_'+ clf_name
-            filename_full =  filename_starter + filename_descr
-            
-            #save estimator, best_params and best_full_params
-            savejson(best_params, pipe_path + 'best_params/', filename_full + '_bestparams.txt')
-            savejson(best_full_params, pipe_path + 'best_full_params/', filename_full + '_bestfullparams.txt')
-            savepickle(best_estimator, pipe_path + 'estimators/', filename_full +'_bestestimator.pickle')            
-            
-            text, top_scores = reportSCORES(estimator_pipe.grid_scores_[:20],name=clf_name, pipe_de=pipe_desc, dr = dr_dic)
-            savepickle(top_scores, pipe_path + 'topScores/', filename_full + '_topScores.pickle')
-            
-            clf_descr = clf_name
-            if dr_name != '':
-                clf_descr += ' (' + dr_name + ')'
-            
-            kept_all_best_params.update({clf_descr:best_params})
-            kept_all_best_full_params.update({clf_descr:best_full_params})
-            kept_all_best_estimators.update({clf_descr:best_estimator})
-            kept_all_top_scores.update({clf_descr: top_scores})
-            
-            report.report('Found best parameters')
-            report.report('-Execution time: ' + str(t1))
-            report.report(str(best_full_params))
-            report.report(str(text))
-            report.saveReport(pipe_path +'/reports/', filename_starter + '_' + str(pipe_desc) + '_' + str(cnt) + '_report.txt')
-            
-        
-        filename_starter = proID + '_' + tokens + '_' + div + '_' + pipe_desc + '_pipe'     
-        report.saveReport(div_path + 'reports/', filename_starter + '_report.txt')
-    
-        #Finished pipe execution -Evaluate results
-    
-        #save estimator, best_params and best_full_params
-        savejson(kept_all_best_params, div_path + 'DATA/ALLbest_params/', filename_starter + '_KEPTbestparams.txt')
-        savejson(kept_all_best_full_params, div_path + 'DATA/ALLbest_full_params/', filename_starter + '_KEPTbestfullparams.txt')
-        savepickle(kept_all_best_estimators, div_path + 'DATA/ALLestimators/', filename_starter +'_KEPTbestestimator.pickle')
-        savepickle(kept_all_top_scores,  div_path + 'DATA/topscores/', filename_starter +'_KEPTALLtopscores.pickle')
-        
-        savejson('FINISHED RUNNING PIPE' + pipe_desc, div_path, pipe_desc + '_STATUS.txt')
-        #evaluate all saved estimators up to that point
-        #pass estimator for evaluation        
-        EVALUATE_TEST(X, Y, kept_all_best_estimators, div_path +'EVALUATION/', filename_starter)
-        EVALUATE_TOPSCORES(kept_all_top_scores, div_path + 'EVALUATION/', filename_starter)
-        
-    
-    return kept_all_best_estimators, kept_all_top_scores
         
 
 
@@ -385,11 +260,13 @@ def get_estimators():
 
     #Pack estimators into dictionary
     
-    ovrSVC = OneVsRestClassifier(SVC())
+    ovrSVCrbf = OneVsRestClassifier(SVC(kernel='rbf'))
     ovr_lsvc = OneVsRestClassifier(SVC(kernel='linear'))
+    
+
     estimators = {ovr_lsvc: lSVC_params, 
                   MultinomialNB(): MNB_params,
-                  ovrSVC: SVC_params,
+                  ovrSVCrbf: SVC_params,
     #              DecisionTreeClassifier: DT_params,
     #              RandomForestClassifier: RFC_params,
     #              AdaBoostClassifier: ABC_params,

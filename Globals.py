@@ -40,7 +40,7 @@ def getResultsPATH():
     return directory + '/'
     
 def getProcessIDPath(processID, exeTime):
-    path = processID + '_'+ exeTime + '/'
+    path = processID + '_'+ exeTime
     full_path = mkdir_RR(path)
     
     return full_path
