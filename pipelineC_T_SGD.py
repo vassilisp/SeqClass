@@ -15,6 +15,7 @@ from reporter import Reporter
 import numpy as np
 
 from operator import itemgetter
+
 from sklearn.svm import SVC, LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
@@ -41,8 +42,11 @@ from sklearn.grid_search import GridSearchCV
 from time import time, ctime
 
 from sklearn.cross_validation import StratifiedKFold
+
+from sklearn.base import clone
+from stratified_metrics import EVALUATE_TEST, EVALUATE_TOPSCORES
 #%%    
-def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
+def getPipelines(Y, SELECT_PIPELINE = 'basic'):
     """
     Path = 'proId / tokens / div'
     Select which pipeline to run 
@@ -60,30 +64,30 @@ def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
     estimators = get_estimators()
     
     #%%
-    estimators_grid1 = {}
-    estimators_grid2 = {}
-    estimators_grid3 = {}    
-    cv = StratifiedKFold(Y_train, 5)
+    estimators_grid1 = []
+    estimators_grid2 = []
+    estimators_grid3 = []    
+    cv = StratifiedKFold(Y, 3)
     scoring = 'accuracy'
     dense = Densifier()  
     for estimator, estimation_params in estimators.items():
 
         print('-'*60)
-        print('Start testing estimator') 
+        print('Start MAKING some PIPES') 
             
-        if SELECT_PIPELINE == 'basic':
+        if SELECT_PIPELINE == 'basic' or SELECT_PIPELINE == 1:
             CLF_pipe_basic = Pipeline([
                              ('tfidfVec', TfidfVectorizer()),
                              ('gus', GenericUnivariateSelect(mode='percentile')),
                              ('clf', estimator)])      
             #pack preprocessing params and estimation params together
             params_basic = pre_params.copy()
-            #params_basic.update(estimation_params)
+            params_basic.update(estimation_params)
 
             grid1 = GridSearchCV(estimator=CLF_pipe_basic, n_jobs=-1,
                                 param_grid=params_basic, cv=cv, scoring = scoring,
                                 verbose=10, refit=False)
-            estimators_grid1.update({'basic':grid1})
+            estimators_grid1.append(grid1)
             
 
         if SELECT_PIPELINE == 'STD':
@@ -101,7 +105,7 @@ def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
             grid2 = GridSearchCV(estimator=CLF_pipeSTD, n_jobs=-1, refit=False,
                                 param_grid=params_STD, cv=cv, scoring = scoring,
                                 verbose = 10)
-            estimators_grid2.update({'STD':grid2})
+            estimators_grid2.append(grid2)
             
             
         if SELECT_PIPELINE == 'full':
@@ -127,14 +131,16 @@ def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
                 grid3 = GridSearchCV(estimator=CLF_pipeDR, n_jobs=-1, refit=False,
                                     param_grid=params_DR, cv=cv, scoring = scoring,
                                     verbose = 10)
-                estimators_grid3.update({'full':grid3})
+                estimators_grid3.append(grid3)
     
     
     ##Gather all generated estimator pipelines:
     generated_pipelines = {}
-    generated_pipelines.update(estimators_grid1)
-    generated_pipelines.update(estimators_grid2)
-    generated_pipelines.update(estimators_grid3)
+    generated_pipelines.update({'basic':estimators_grid1})
+    generated_pipelines.update({'withSTD':estimators_grid2})
+    generated_pipelines.update({'withDR':estimators_grid3})
+    
+    return generated_pipelines
     #%%
     """
     gs = estimators_grid2[0]
@@ -147,7 +153,10 @@ def getPipelines(Y_develop='', SELECT_PIPELINE = 1):
     """
 def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
     
-    generated_pipelines = getPipelines(Y_develop, SELECT_PIPELINE)
+    X = X_develop
+    Y = Y_develop
+    
+    generated_pipelines = getPipelines(Y, SELECT_PIPELINE)
     
     kept_all_best_estimators = {}
     kept_all_best_params = {}
@@ -155,13 +164,17 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
     kept_all_top_scores = {}
     
     report = Reporter()
+    """
     if len(generated_pipelines)==1:
         print("OK")
     else:
-        print('Something went wrong generating the pipelines')
+        print('Something went wrong,TOO MANY PIPES generating the pipelines')
+        print('ONLY ONE MUST BE SET')
         exit
-    
+    """
     for pipe_desc, gen_pipes in generated_pipelines.items():
+        if len(gen_pipes)<1:
+            continue;
         print('\n'*10)
         print('##'*40)
         print('RUNNING PIPE :', pipe_desc)
@@ -174,22 +187,35 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
             print('RUNNING PIPE :', pipe_desc)
             print('__'*40)
             print(estimator_pipe)
-            print('=='*40)
+            print('=='*40)            
             
-            clf_name = estimator_pipe.estimator.named_steps['clf'].__class__.__name__
             
-            report.subreport('Testing estimator : ' + clf_name + ' in ' + pipe_desc + ' pipe')
                 
             t0 = time()
-            estimator_pipe.fit(X_train,Y_train)
+            estimator_pipe.fit(X,Y)
             t1 = time()-t0
             
 
-            estim = estimator_pipe.estimator            
-            best_params = estimator_pipe.best_params_
+            estim = clone(estimator_pipe.estimator)
+            best_params = estimator_pipe.best_params_.copy()
             #the best estimator is the estimator of the pipe set with the best
             #parameters of the pipe
             best_estimator = estim.set_params(**best_params)
+
+            clf_name = findclf_name(best_estimator)
+            report.subreport('Tested estimator : ' + clf_name + ' in ' + pipe_desc + ' pipe , time:' + str(t1))
+            
+            try:
+                best_estimator.set_params(**{'clf__estimator__probability': True})
+            except:
+                pass
+            
+            if clf_name == 'SVC':
+                try:
+                    clf_name += '_' + best_estimator.named_steps['clf'].kernel
+                except:
+                    print('probably not an SVC')
+
             
             steps = best_estimator.named_steps
             dr_dic = {}            
@@ -203,8 +229,8 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
             best_full_params.update({'clf':clf_name})
             
 
-            pipe_path = div_path + '/' + pipe_desc + '_pipe_details/'
-            filename_starter = proID + '_' + tokens + '_' + div            
+            pipe_path = div_path + pipe_desc + '_pipe_details/'
+            filename_starter = str(proID) + '_' + str(tokens) + '_' + str(div) + '_'           
             filename_descr = pipe_desc + '_' +dr_name +'_'+ clf_name
             filename_full =  filename_starter + filename_descr
             
@@ -213,7 +239,8 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
             savejson(best_full_params, pipe_path + 'best_full_params/', filename_full + '_bestfullparams.txt')
             savepickle(best_estimator, pipe_path + 'estimators/', filename_full +'_bestestimator.pickle')            
             
-            text, top_scores = report(estimator_pipe.grid_scores_[:20],name=clf_name, pipe_de=pipe_desc, dr = dr_dic)
+            text, top_scores = reportSCORES(estimator_pipe.grid_scores_[:20],name=clf_name, pipe_de=pipe_desc, dr = dr_dic)
+            savepickle(top_scores, pipe_path + 'topScores/', filename_full + '_topScores.pickle')
             
             clf_descr = clf_name
             if dr_name != '':
@@ -225,10 +252,10 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
             kept_all_top_scores.update({clf_descr: top_scores})
             
             report.report('Found best parameters')
-            report.report('-Execution time: ' + t1)
+            report.report('-Execution time: ' + str(t1))
             report.report(str(best_full_params))
-            report.report(text)
-            report.saveReport(pipe_path +'/reports/', filename_starter + '_' + pipe_desc + '_' + cnt + '_report.txt')
+            report.report(str(text))
+            report.saveReport(pipe_path +'/reports/', filename_starter + '_' + str(pipe_desc) + '_' + str(cnt) + '_report.txt')
             
         
         filename_starter = proID + '_' + tokens + '_' + div + '_' + pipe_desc + '_pipe'     
@@ -237,14 +264,16 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE):
         #Finished pipe execution -Evaluate results
     
         #save estimator, best_params and best_full_params
-        savejson(kept_all_best_params, div_path + 'DATA/best_params/', filename_starter + '_keptbestparams.txt')
-        savejson(kept_all_best_full_params, div_path + 'DATA/best_full_params/', filename_starter + '_keptbestfullparams.txt')
-        savepickle(kept_all_best_estimators, div_path + 'DATA/estimators/', filename_starter +'_keptbestestimator.pickle')
+        savejson(kept_all_best_params, div_path + 'DATA/ALLbest_params/', filename_starter + '_KEPTbestparams.txt')
+        savejson(kept_all_best_full_params, div_path + 'DATA/ALLbest_full_params/', filename_starter + '_KEPTbestfullparams.txt')
+        savepickle(kept_all_best_estimators, div_path + 'DATA/ALLestimators/', filename_starter +'_KEPTbestestimator.pickle')
+        savepickle(kept_all_top_scores,  div_path + 'DATA/topscores/', filename_starter +'_KEPTALLtopscores.pickle')
         
+        savejson('FINISHED RUNNING PIPE' + pipe_desc, div_path, pipe_desc + '_STATUS.txt')
         #evaluate all saved estimators up to that point
         #pass estimator for evaluation        
-        EVALUATE_estimator(kept_all_best_estimators, div_path +'EVALUATION/', file_starter)
-        EVALUATE_top_scores(kept_all_top_scores, div_path + 'EVALUATION/', file_starter)
+        EVALUATE_TEST(X, Y, kept_all_best_estimators, div_path +'EVALUATION/', filename_starter)
+        EVALUATE_TOPSCORES(kept_all_top_scores, div_path + 'EVALUATION/', filename_starter)
         
     
     return kept_all_best_estimators, kept_all_top_scores
@@ -265,7 +294,30 @@ def savejson(data, path, filename):
         json.dump(data, outfile)
        
     
-        
+def findclf_name(estimator):
+
+    testim = clone(estimator)
+    k=0
+    try:
+        while (not isinstance(testim, BaseEstimator)):
+            testim = testim.estimator
+    except:
+        pass
+    
+    clf_name = testim.__class__.__name__
+    if clf_name == 'Pipeline':
+        clf_name = testim.named_steps['clf'].__class__.__name__
+        testim = testim.named_steps['clf']
+    
+    if clf_name == 'OneVsRestClassifier':
+        clf_name = testim.estimator.__class__.__name__
+        try:
+            clf_name += '_' + testim.estimator.kernel
+        except:
+            pass
+    
+    return clf_name
+    
         
 #%%
 #%% DEFINE ALL RUNNING PARAMETERS HERE [get_pre_params], [get_std_params], [get_estimators], [get_DRS]
@@ -302,23 +354,25 @@ def get_std_params():
 
 #%%Define classifier parameters                
 def get_estimators():
-    lSVC_params = {'clf__C': [0.001,]# 0.01],# 0.1, 1, 10, 100),
+    lSVC_params = {
+                    #'clf__C': [0.001,]# 0.01],# 0.1, 1, 10, 100),
                       #'clf__gamma': (1, 0.1)}# 0.01)#, 0.001, 0.0001, 0.00001)
                    }
     
-    SVC_params = {'clf__C': (0.001, 0.01, 0.1),# 1, 10, 100),
-                  'clf__gamma': (1, 0.1, 0.01),#, 0.001, 0.0001, 0.00001)}                  
-                  'clf__kernel': ('rbf', 'poly', 'sigmoid')
+    SVC_params = {#'clf__C': (0.001, 0.01, 0.1),# 1, 10, 100),
+                  #'clf__gamma': (1, 0.1, 0.01),#, 0.001, 0.0001, 0.00001)}                  
+                  'clf__estimator__kernel': ('rbf', 'poly', 'sigmoid')
                   }
     
-    SGD_params = {'clf__alpha': (0.1, 0.001, 0.0001, 0.000001)}
+    SGD_params = {#'clf__alpha': (10.0 ,1.0 ,0.1, 0.001, 0.0001, 0.000001)
+                    }
     
-    MNB_params = {'clf__alpha': [1, 0.1]#, 0.001, 0.0001, 10)}
+    MNB_params = {#'clf__alpha': [1, 0.1]#, 0.001, 0.0001, 10)}
                   }
     
-    DT_params = {'clf__criterion': ('gini', 'entropy'),
-                 'clf__min_samples_split': (2,4,8,16,32,64,100),
-                 'clf__min_samples_leaf': (1,5,10,15,20)
+    DT_params = {#'clf__criterion': ('gini', 'entropy'),
+                 #'clf__min_samples_split': (2,4,8,16,32,64,100),
+                 #'clf__min_samples_leaf': (1,5,10,15,20)
                  }
                     
     RFC_params = {}
@@ -332,11 +386,10 @@ def get_estimators():
     #Pack estimators into dictionary
     
     ovrSVC = OneVsRestClassifier(SVC())
-    clf = MultinomialNB()
-    estimators = {LinearSVC(): lSVC_params, 
-    #              clf: MNB_params,
-    #              ovrSVC: SVC_params,
-    #              SVC(): SVC_params,
+    ovr_lsvc = OneVsRestClassifier(SVC(kernel='linear'))
+    estimators = {ovr_lsvc: lSVC_params, 
+                  MultinomialNB(): MNB_params,
+                  ovrSVC: SVC_params,
     #              DecisionTreeClassifier: DT_params,
     #              RandomForestClassifier: RFC_params,
     #              AdaBoostClassifier: ABC_params,
@@ -352,13 +405,13 @@ def get_DRS():
     return (empty, TruncatedSVD(), PCA())
 def get_dr_params():
     dr_params = {}
-    dr_params = {'dr__n_component': (100, 1500)# 'mle',100,500,1000,3000
+    dr_params = {#'dr__n_component': (100, 1500)# 'mle',100,500,1000,3000
                 }
     return dr_params
     
 #%%
 # Utility function to report best scores
-def report(grid_scores,name='', pipe_de= '', dr='', n_top=5):
+def reportSCORES(grid_scores,name='', pipe_de= '', dr='', n_top=5):
     a = '\n' + 'Report for best estimator '+ name + ' in' + pipe_de
 
     a = 'Best estimator uses DR : ' + str(dr) + '\n'
@@ -371,6 +424,7 @@ def report(grid_scores,name='', pipe_de= '', dr='', n_top=5):
               mean_validation_score, std_mean_validation_score)
         a += "Parameters: {0}".format(score.parameters)
         a +='\n'
+    
     return a, top_scores
         
         
@@ -412,6 +466,20 @@ class Densifier(BaseEstimator, TransformerMixin):
 if __name__ == "__main__":
     #%%dummy data
     import LoadingTestData
-    X_train,Y_train = LoadingTestData.loadTestData('pro307653', 'clientId', 3)
+
+    #X_train,Y_train = LoadingTestData.loadTestData('pro307653', 'clientId', 3)
     #%%    
-    run()
+    from sklearn.datasets import make_classification, fetch_20newsgroups
+    X,Y = make_classification(n_samples=200, n_classes=4, n_features=20, n_informative=10)
+    
+    
+
+    categories = ['alt.atheism', 'talk.religion.misc',
+               'comp.graphics', 'sci.space']
+    newsgroups_train = fetch_20newsgroups(subset='train',
+                                      categories=categories)    
+    Y = newsgroups_train.target[:20]
+    X = newsgroups_train.data[:20]
+    
+    
+    run(X,Y, 'test', '4', 'full', '/home/vpan/TESTPIPE/', 1 )

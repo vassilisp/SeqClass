@@ -27,9 +27,9 @@ reporter = Reporter()
 
 def main():
 
-    tokenList = {'full':0} #'1':1, '2':2, '3':3, '4':4}
+    tokenList = {'full':0} #'1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
     q_dividers = ['clientId'] #'clientId,subSession' -- if added - add also a FOR LOOP
-    dividers = {0:'full', 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
+    dividers = {0:'full'}#, 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
     
     for proID in A:
             
@@ -60,22 +60,22 @@ def main():
 def runTestwithDividers(X,Y, dividers, token_path):
         
      #Held out sample for later validation
-    X_develop, X_validate , Y_develop, Y_validate = train_test_split(X,Y, test_size=0.3)
+    #X_develop, X_validate , Y_develop, Y_validate = train_test_split(X,Y, test_size=0.3)
     
     for div in dividers:
         
         #create batch folder
-        div_path = Globals.mkdir_LR(token_path+dividers[div])
+        #div_path = Globals.mkdir_LR(token_path+dividers[div])
         
-        X_develop, Y_develop, report_develop = rebatcher.single_rebatcher(X_develop, Y_develop, div)
-        X_validate, Y_validate, report_validate = rebatcher.single_rebatcher(X_validate, Y_validate, div)
-        report_develop.concat_report(report_validate)
-        report_develop.saveReport(div_path + 'report' + div + '.txt')            
+        #X_develop, Y_develop, report_develop = rebatcher.single_rebatcher(X_develop, Y_develop, div)
+        #X_validate, Y_validate, report_validate = rebatcher.single_rebatcher(X_validate, Y_validate, div)
+        #report_develop.concat_report(report_validate)
+        #report_develop.saveReport(div_path + 'report' + div + '.txt')            
         
         
         #some stats on the new divided sets
-        report_develop.saveReport(div_path)
-        reporter.concat_report(report_develop)
+        #report_develop.saveReport(div_path)
+        #reporter.concat_report(report_develop)
         
         #running GridSearch on specific token div combination
         
@@ -85,7 +85,9 @@ def runTestwithDividers(X,Y, dividers, token_path):
         #score paint report save
         
         
-        reporter.saveReport(proID_path + 'full_report.txt')
+        #reporter.saveReport(proID_path + 'full_report.txt')
+        
+        from pipelineC_T_SGD import 
             
 
            

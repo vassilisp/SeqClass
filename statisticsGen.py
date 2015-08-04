@@ -64,7 +64,7 @@ class StatisticsGen:
         
         #add 0.5 to x
         ax.set_xticks(x)
-        ax.set_xticklabels(A)
+        ax.set_xticklabels(A, rotation=45)
         
         this.reporter.subreport('Total transitions per day')
         for day in zip(A,B):        

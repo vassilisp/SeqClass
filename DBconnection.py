@@ -2,7 +2,8 @@ import pymysql as sql
 import numpy as np
 
 def getConnection():
-    connection = sql.connect(host='thesisDBserver.dyn.adnovum.ch', user='vasilisp', passwd='a1b2c3$%^',db='OctoberLogsLocal')
+    #connection = sql.connect(host='thesisDBserver.dyn.adnovum.ch', user='vasilisp', passwd='a1b2c3$%^',db='OctoberLogsLocal')
+    connection = sql.connect(host='192.168.15.176', user='vasilisp', passwd='a1b2c3$%^',db='OctoberLogsLocal')
     return connection
 
     
