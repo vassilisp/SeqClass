@@ -21,7 +21,7 @@ con = DBconnection.getConnection()
 
 A = DBconnection.connectAndFetchArray(BasicQueries.getAllProcessIDs())
 A = A[:,0]
-A = ['pro307653']
+A = ['pro48556', 'pro48937']'pro307653'
 
 
 #%% Setup env
@@ -37,7 +37,7 @@ cnt = 0
 dividers = {0:'full', 200:'batch200'}#, 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
 def main():
 
-    tokenList = {'full':0} #'1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
+    tokenList = {'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
     q_dividers = ['clientId'] #'clientId,subSession' -- if added - add also a FOR LOOP
     
     
@@ -108,8 +108,8 @@ def runTestwithDividers(X,Y, proID, proID_path, token_path, token):
         
         filename = lab + '_' + str(cnt)
         
-        savepickle(results_topScores, proID_path + '/' + 'ALLfromALL', filename + '_topscores.pickle')
-        savepickle(results_estimators, proID_path + '/' + 'ALLfromALL', filename + '_ALLestimators.pickle')
+        savepickle(results_topScores, proID_path + 'ALLfromALL', filename + '_topscores.pickle')
+        savepickle(results_estimators, proID_path +  'ALLfromALL', filename + '_ALLestimators.pickle')
         
     
             

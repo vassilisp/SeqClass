@@ -200,12 +200,12 @@ def findclf_name(estimator):
 #%%Define Preprocessing and feature extractions steps      
 def get_pre_params():
 
-    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2))#,(2,3)),#,(3,3),(3,4),(4,4),(13,15),(18,20), (10,12), (15,15)),
+    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2),(2,3),(3,3),(3,4),(4,4),(5,5)),#(13,15),(18,20), (10,12), (15,15)),
                         #'tfidfVec__max_df': (0.9, 0.7),# 0.5, 0.3),
                         #'tfidfVec__binary': (True, False),
-                        #'tfidfVec__norm': (None, 'l1', 'l2'),
-                        #'tfidfVec__use_idf': (True, False),
-                        #'tfidfVec__sublinear_tf': (True, False)}                    
+                        'tfidfVec__norm': (None, 'l1', 'l2'),
+                        'tfidfVec__use_idf': (True, False),
+                        'tfidfVec__sublinear_tf': (True, False)
                         }
     gus_params = {'gus__param': (30, 60)}
     #gus_params = {'gus__param': (10, 20, 30, 40, 50, 60, 70, 80, 90, 100),
@@ -267,10 +267,10 @@ def get_estimators():
     estimators = {ovr_lsvc: lSVC_params, 
                   MultinomialNB(): MNB_params,
                   ovrSVCrbf: SVC_params,
-    #              DecisionTreeClassifier: DT_params,
+                  DecisionTreeClassifier(): DT_params,
     #              RandomForestClassifier: RFC_params,
-    #              AdaBoostClassifier: ABC_params,
-    #              LDA: LDA_params,
+                  AdaBoostClassifier(): ABC_params,
+                  LDA: LDA_params,
     #              QDA: QDA_params
                   }
     return estimators

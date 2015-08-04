@@ -66,6 +66,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     falseax.hold(True)
     
     falseL, falseLax = plt.subplots()
+    falseLax.set_xscale('log')
     falseLax.hold(True)
     
     scor, scorax = plt.subplots()
@@ -125,7 +126,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             labels.append(estim_descr)
     
             mean_tpr /= len(cv)
-            mean_tpr[-1] = 1
+            mean_tpr[-1] = 1.001
             mean_auc = metrics.auc(mean_fpr, mean_tpr)
             
             #colorargs = clfColors(estimator)
@@ -151,25 +152,30 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             p3 = scorax.bar(j+0.3, y_score_mean, yerr=y_score_std, ecolor='r', color='w', align='center')
             
             #%%
+            """
             y_real = np.concatenate(y_real)
             y_prediction = np.concatenate(y_prediction)
             y_pb_all = np.concatenate(y_pb_all)
         
-        
+            """
             #%%
+            
+            """            
             lb = LabelBinarizer()
             y_real_bin = lb.fit_transform(y_real)
             y_prediction_bin = lb.transform(y_prediction)
         
     
         
+
         #%%
+            
             fpr, tpr, thr = metrics.roc_curve(y_real_bin.ravel(), y_pb_all.ravel())
             rocsax.plot(fpr,tpr, label='pb'+estim_descr)
-    
+            """
             #%%
             
-            
+            """
             #%%NAIVE
             from sklearn.cross_validation import train_test_split
             Xtrain, Xtest, Ytrain, Ytest = train_test_split(X,Y,test_size=0.2)
@@ -183,7 +189,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             fpr,tpr, _ = metrics.roc_curve(y_bin.ravel(), y_pb.ravel())
             rocsax.plot(fpr,tpr,label='wrong'+estim_descr)
             rocsax.plot([0,1],[0,1], 'b--', lw=0.8)
-            
+            """
             
             graph_confusion(y_real, y_prediction, estim_descr, path)
         except:
@@ -201,7 +207,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
         timebax.legend( (p2[0],p1[0]), ('test', 'train'), loc='best' )
         timebax.set_ylabel('time (s)')
         timebax.set_xticks(np.arange(0, len(labels),1)+0.3)        
-        timebax.set_xticklabels(labels, rotation=45)
+        timebax.set_xticklabels(labels, rotation=10)
         timebars.tight_layout()
     except:
         pass
@@ -285,7 +291,7 @@ def graph_confusion(Y_true, Y_predict, label, path):
 #%%
 def savefig(plt, path, filename):
     mkdir_LR(path)
-    plt.savefig(path + filename, dpi=1200, format='svg' )
+    plt.savefig(path + filename, dpi=1200, format='png' )
 
     
 #%%
