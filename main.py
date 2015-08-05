@@ -21,7 +21,7 @@ con = DBconnection.getConnection()
 
 A = DBconnection.connectAndFetchArray(BasicQueries.getAllProcessIDs())
 A = A[:,0]
-A = ['pro48556', 'pro48937']'pro307653'
+A = ['pro48556', 'pro48937']#'pro307653'
 
 
 #%% Setup env
