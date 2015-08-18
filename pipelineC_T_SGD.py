@@ -27,7 +27,7 @@ from sklearn.multiclass import OneVsRestClassifier
 #import feature extraction and Preprocessing modules
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Normalizer
 
 #import feature select modules
 from sklearn.feature_selection import GenericUnivariateSelect
@@ -61,7 +61,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
     pre_params = get_pre_params()
     std_params = get_std_params()
     dr_params = get_dr_params()
-    estimators = get_estimators()
+    estimators, estimator_params = get_estimators()
     
     #%%
     estimators_grid1 = []
@@ -70,7 +70,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
     cv = StratifiedKFold(Y, 3)
     scoring = 'accuracy'
     dense = Densifier()  
-    for estimator, estimation_params in estimators.items():
+    for estimator, estimation_params in zip(estimators, estimator_params):
 
         print('-'*60)
         print('Start MAKING some PIPES') 
@@ -108,7 +108,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
             estimators_grid2.append(grid2)
             
             
-        if SELECT_PIPELINE == 'full':
+        if SELECT_PIPELINE == 'full'or SELECT_PIPELINE == 3:
             #SUPER EXPENSIVE SEARCH - probably better using RandomizedGridCV
             
             #DRS = (PCA(), TruncatedSVD(), RandomizedPCA(), FastICA(), NMF(), noDR())  
@@ -118,9 +118,9 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                 CLF_pipeDR = Pipeline([
                                  ('tfidfVec', TfidfVectorizer()),
                                  ('toDense', dense),
-                                 ('stad', StandardScaler()),
                                  ('gus', GenericUnivariateSelect(mode='percentile')),
                                  ('dr', DR),
+                                 ('stad', Normalizer()),
                                  ('clf', estimator)])
                 #pack preprocessing params and estimation params together
                 params_DR = pre_params.copy()
@@ -129,7 +129,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                 params_DR.update(estimation_params)            
                                     
                 grid3 = GridSearchCV(estimator=CLF_pipeDR, n_jobs=-1, refit=False,
-                                    param_grid=params_DR, cv=cv, scoring = scoring,
+                                    param_grid=params_DR, cv=cv, scoring = scoring, error_score=0,
                                     verbose = 10)
                 estimators_grid3.append(grid3)
     
@@ -172,7 +172,6 @@ def savejson(data, path, filename):
 def findclf_name(estimator):
 
     testim = clone(estimator)
-    k=0
     try:
         while (not isinstance(testim, BaseEstimator)):
             testim = testim.estimator
@@ -200,14 +199,14 @@ def findclf_name(estimator):
 #%%Define Preprocessing and feature extractions steps      
 def get_pre_params():
 
-    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2),(2,3),(3,3),(3,4),(4,4),(5,5)),#(13,15),(18,20), (10,12), (15,15)),
+    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
                         #'tfidfVec__max_df': (0.9, 0.7),# 0.5, 0.3),
-                        #'tfidfVec__binary': (True, False),
-                        'tfidfVec__norm': (None, 'l1', 'l2'),
+                        'tfidfVec__binary': (True, False),
+                        #'tfidfVec__norm': (None, 'l1', 'l2'),
                         'tfidfVec__use_idf': (True, False),
                         'tfidfVec__sublinear_tf': (True, False)
                         }
-    gus_params = {'gus__param': (30, 60)}
+    gus_params = {'gus__param': (10, 60, 90)}
     #gus_params = {'gus__param': (10, 20, 30, 40, 50, 60, 70, 80, 90, 100),
     #                  'gus_score_func': (f_classif(), chi2())}
     
@@ -230,13 +229,13 @@ def get_std_params():
 #%%Define classifier parameters                
 def get_estimators():
     lSVC_params = {
-                    #'clf__C': [0.001,]# 0.01],# 0.1, 1, 10, 100),
+                    'clf__estimator__C': [0.001, 0.01, 1, 10],# 0.1, 1, 10, 100),
                       #'clf__gamma': (1, 0.1)}# 0.01)#, 0.001, 0.0001, 0.00001)
                    }
     
-    SVC_params = {#'clf__C': (0.001, 0.01, 0.1),# 1, 10, 100),
-                  #'clf__gamma': (1, 0.1, 0.01),#, 0.001, 0.0001, 0.00001)}                  
-                  'clf__estimator__kernel': ('rbf', 'poly', 'sigmoid')
+    SVC_params = {'clf__estimator__C': (0.001, 0.01, 1, 10),# 1, 10, 100),
+                  'clf__gamma': (1, 0.1, 0.01, 0.001,)# 0.0001, 0.00001)}                  
+                  #'clf__estimator__kernel': ('rbf', 'poly', 'sigmoid')
                   }
     
     SGD_params = {#'clf__alpha': (10.0 ,1.0 ,0.1, 0.001, 0.0001, 0.000001)
@@ -263,41 +262,72 @@ def get_estimators():
     ovrSVCrbf = OneVsRestClassifier(SVC(kernel='rbf'))
     ovr_lsvc = OneVsRestClassifier(SVC(kernel='linear'))
     
+    estimators = []
+    estimators_params = []
+    
+    
+    estimators.append(LDA())
+    estimators_params.append(LDA_params)
 
+    estimators.append(QDA())
+    estimators_params.append(QDA_params) 
+
+    #estimators.append(MultinomialNB())
+    #estimators_params.append(MNB_params)
+    
+    estimators.append(ovr_lsvc)
+    estimators_params.append(lSVC_params)
+
+    estimators.append(ovrSVCrbf)
+    estimators_params.append(SVC_params)
+
+    estimators.append(DecisionTreeClassifier())
+    estimators_params.append(DT_params)
+
+       
+    
+    """
     estimators = {ovr_lsvc: lSVC_params, 
                   MultinomialNB(): MNB_params,
                   ovrSVCrbf: SVC_params,
                   DecisionTreeClassifier(): DT_params,
-    #              RandomForestClassifier: RFC_params,
+    #              RandomForestClassifier(): RFC_params,
                   AdaBoostClassifier(): ABC_params,
-                  LDA: LDA_params,
-    #              QDA: QDA_params
+                  LDA(): LDA_params,
+    #              QDA(): QDA_params
                   }
-    return estimators
+    """
+    return estimators, estimators_params
 
 
 #%%Dimensionality reduction parameters
 def get_DRS():
     empty = noDR()
-    return (empty, TruncatedSVD(), PCA())
+    res = []
+    
+    res.append(empty)
+    res.append(FastICA())
+    res.append(TruncatedSVD())
+    res.append(RandomizedPCA())
+    return res# empty, TruncatedSVD(),
 def get_dr_params():
     dr_params = {}
-    dr_params = {#'dr__n_component': (100, 1500)# 'mle',100,500,1000,3000
+    dr_params = {'dr__n_components': (10,100, 1000)#,500, 1500)# 'mle',100,500,1000,3000
                 }
     return dr_params
     
 #%%
 # Utility function to report best scores
 def reportSCORES(grid_scores,name='', pipe_de= '', dr='', n_top=5):
-    a = '\n' + 'Report for best estimator '+ name + ' in' + pipe_de
+    a = '\n' + 'Report for best estimator '+ name + ' in ' + pipe_de
 
-    a = 'Best estimator uses DR : ' + str(dr) + '\n'
-    top_scores = sorted(grid_scores, key=itemgetter(1), reverse=True)[:n_top]
+    a += ' ,Best estimator uses DR : ' + str(dr) + '\n'
+    top_scores = sorted(grid_scores, key=itemgetter(1), reverse=True)[:n_top+1]
     for i, score in enumerate(top_scores):
         
         mean_validation_score = score.mean_validation_score
         std_mean_validation_score = np.std(score.cv_validation_scores)
-        a = "Mean validation score: {0:.3f} (std: {1:.3f})".format(
+        a += "Mean validation score: {0:.3f} (std: {1:.3f})".format(
               mean_validation_score, std_mean_validation_score)
         a += "Parameters: {0}".format(score.parameters)
         a +='\n'
@@ -311,19 +341,22 @@ from sklearn.cross_validation import FitFailedWarning
 
 
 class noDR(BaseEstimator, TransformerMixin):
+    ncomp = 0
     def fit(self, X, y=None):
         return self
     def fit_transform(self, X, y=None, **fit_params):
         self.fit(X,y,**fit_params)        
         return self.transform(X)
     def transform(self, X, y=None, **fit_params):
-        return X
+        if self.ncomp == 100:
+            return X
+        else:
+            raise FitFailedWarning
         
     def set_params(self, **kargs):
         if 'n_components' in kargs:
-            if kargs['n_components'] != 1000:
-                raise FitFailedWarning
-        return {'noDR': 'Panopoulos ;)'}
+            self.ncomp = kargs['n_components']
+        return {'noDR': 'Panopoulos ;)', 'n_components':self.ncomp}
     
     
 

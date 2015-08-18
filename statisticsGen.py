@@ -14,19 +14,19 @@ class StatisticsGen:
     Y = []
     reporter = Reporter()
     
-    def __init__(this, processID, divider, exeTime):
+    def __init__(this, processID, divider, token, exeTime):
         this.processID = processID
         this.divider = divider
         this.exeTime = exeTime
         this.reporter.new_report("Statistics of " + processID + " at " + exeTime)
         
-        this.X, this.Y = loadTestData(processID, divider)
+        this.X, this.Y = loadTestData(processID, divider, token)
         
     def savefig(this, fig, filename):
         path = Globals.getProcessIDPath(this.processID, this.exeTime)
-        filename = this.processID + '_' + filename + '.svg'
+        filename = this.processID + '_' + this.divider + '_' + filename + '.svg'
         
-        fig.savefig(path + filename, format = 'svg', dpi=1200)
+        fig.savefig(path + filename, format = 'svg', dpi=600)
         
     def saveReport(this, report, filename):
         path = Globals.getProcessIDPath(this.processID, this.exeTime)
@@ -65,10 +65,11 @@ class StatisticsGen:
         #add 0.5 to x
         ax.set_xticks(x)
         ax.set_xticklabels(A, rotation=45)
+        fig.tight_layout()
         
         this.reporter.subreport('Total transitions per day')
         for day in zip(A,B):        
-            this.report.report(str(day))
+            this.reporter.report(str(day))
             
         this.savefig(fig, 'totalTransitionsperDay')
 
@@ -163,5 +164,5 @@ class StatisticsGen:
         
 
     def getReport(this):
-        return this.report
+        return this.reporter.getReport()
         

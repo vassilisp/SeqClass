@@ -22,7 +22,9 @@ from Globals import clfColors, mkdir_LR
 
 import matplotlib.pyplot as plt
 import sys
-    
+
+import json
+
 def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     
     
@@ -56,21 +58,24 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
 
     
 
-    timebars, timebax = plt.subplots()
+    timebars, timebax = plt.subplots(figsize=(8,6))
     timebax.hold(True)
 
-    rocs, rocsax = plt.subplots()
+    rocs, rocsax = plt.subplots(figsize=(8,6))
     rocsax.hold(True)
     
-    false, falseax = plt.subplots()
+    false, falseax = plt.subplots(figsize=(8,6))
     falseax.hold(True)
     
-    falseL, falseLax = plt.subplots()
+    falseL, falseLax = plt.subplots(figsize=(8,6))
     falseLax.set_xscale('log')
     falseLax.hold(True)
     
     scor, scorax = plt.subplots()
     scorax.hold(True)
+    
+    fmeasure, fmeasurax = plt.subplots(figsize=(8,6))
+    fmeasurax.hold(True)
     
     labels = []
     
@@ -116,9 +121,16 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
                 #Mean ROC
                 lb = LabelBinarizer().fit(Y)
                 y_true = lb.transform(Y[test])
+                
+                ##OUCH correcting for masquerade instead of self/noself
+                y_true = 1 - y_true
+                y_pb = 1 - y_pb
+                                
+                
+                
                 fpr, tpr, _ = metrics.roc_curve(y_true.ravel(), y_pb.ravel())
                 mean_tpr += interp(mean_fpr,fpr,tpr)
-                mean_tpr[0]=0.001
+                mean_tpr[0]=0
                 #+++
                 
                 print('predict in:', t_predict[i])
@@ -127,6 +139,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     
             mean_tpr /= len(cv)
             mean_tpr[-1] = 1.001
+            mean_tpr[0] = 0
             mean_auc = metrics.auc(mean_fpr, mean_tpr)
             
             #colorargs = clfColors(estimator)
@@ -152,24 +165,31 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             p3 = scorax.bar(j+0.3, y_score_mean, yerr=y_score_std, ecolor='r', color='w', align='center')
             
             #%%
-            """
+            
             y_real = np.concatenate(y_real)
             y_prediction = np.concatenate(y_prediction)
             y_pb_all = np.concatenate(y_pb_all)
-        
-            """
+    
+            
             #%%
             
-            """            
+                        
             lb = LabelBinarizer()
             y_real_bin = lb.fit_transform(y_real)
             y_prediction_bin = lb.transform(y_prediction)
         
-    
-        
+            #%%
+            #DONE code to create the Fmeasure plots
+            beta = np.arange(0.001,4, 0.049)
+            results = []
+            for b in beta:
+                res = metrics.fbeta_score(y_real, y_prediction, b, average='weighted')
+                results.append(res)                
+            
+            fmeasurax.plot(beta, results, label=estim_descr)
 
         #%%
-            
+            """
             fpr, tpr, thr = metrics.roc_curve(y_real_bin.ravel(), y_pb_all.ravel())
             rocsax.plot(fpr,tpr, label='pb'+estim_descr)
             """
@@ -192,14 +212,20 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             """
             
             graph_confusion(y_real, y_prediction, estim_descr, path)
+            graph_confusion2(y_real, y_prediction, estim_descr, path)
         except:
             print(sys.exc_info())
     #%%              
+    yticks = np.arange(0,1,0.1)
     
     rocsax.legend(loc='best')
-    rocsax.set_xlabel('FALSE POSITVE (%)')
+    rocsax.plot([0,1], [0,1], 'b--', lw=0.6)
+    rocsax.set_xlim([0,1])
+    rocsax.set_ylim([0,1])
+    rocsax.set_xlabel('FALSE POSITIVE (%)')
     rocsax.set_ylabel('TRUE POSITIVE (%)')
     rocsax.grid(b=True ,which='major')
+    rocsax.set_yticks(yticks)
     rocs.tight_layout()
 
     #rocsax.set_xscale('log')
@@ -207,7 +233,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
         timebax.legend( (p2[0],p1[0]), ('test', 'train'), loc='best' )
         timebax.set_ylabel('time (s)')
         timebax.set_xticks(np.arange(0, len(labels),1)+0.3)        
-        timebax.set_xticklabels(labels, rotation=10)
+        timebax.set_xticklabels(labels, rotation=15)
         timebars.tight_layout()
     except:
         pass
@@ -215,12 +241,18 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     falseax.set_ylabel('MISSING ALARMS (%)')
     falseax.set_xlabel('FALSE ALARMS (%)')
     falseax.legend(loc='best')
+    falseax.set_xlim([0,1])
+    falseax.set_ylim([0,1])
+    falseax.set_yticks(yticks)
     falseax.grid(b=True ,which='major')
-    false.tight_layout()    
+    false.tight_layout()
+    
     falseLax.set_ylabel('MISSING ALARMS (%)')
     falseLax.set_xlabel('FALSE ALARMS (%)')
     falseLax.legend(loc='best')
     falseLax.set_xlim([0.001,1])
+    falseLax.set_ylim([0,1])
+    falseLax.set_yticks(yticks)
     falseLax.set_xscale('log')
     falseLax.grid(b=True ,which='minor')
     falseLax.grid(b=True ,which='major')
@@ -228,19 +260,31 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     
     scorax.set_ylabel('ACCURACY (jaccard similarity)')
     scorax.set_xticks(np.arange(0, len(labels),1)+0.3)        
-    scorax.set_xticklabels(labels, rotation=45)
+    scorax.set_xticklabels(labels, rotation=20)
     scor.tight_layout()
     
-    savefig(rocs, path,  method + '_roccurve.svg')
-    savefig(falseL, path,  method + '_missedalarms_log.svg')
-    savefig(false, path,  method + '_missedalarms.svg')
+    savefig(rocs, path,  method + '_roccurve')
+    savefig(falseL, path,  method + '_missedalarms_log')
+    savefig(false, path,  method + '_missedalarms')
     
+    rocsax.set_xlim([0.001,1])
+    rocsax.set_ylim([0,1])
+    del rocsax.lines[-1]
+    rocsax.set_yticks(yticks)
     rocsax.set_xscale('log')
-    rocs.tight_layout()
-    savefig(rocs, path,  method + '_roc_curvelog.svg')
+    savefig(rocs, path,  method + '_roc_curvelog')
     
-    savefig(scor, path, method + '_scores.svg')
-    savefig(timebars, path, method + '_traintesttimes.svg')    
+    savefig(scor, path, method + '_scores')
+    savefig(timebars, path, method + '_traintesttimes')
+    
+    fmeasurax.set_ylabel("F-Beta")
+    fmeasurax.set_xlabel('F-b measure')
+    fmeasurax.legend(loc='best')
+    fmeasurax.set_xlim([0,4.5])
+    fmeasure.tight_layout()
+    savefig(fmeasure, path, method + '_fmeasure')
+    
+    #plt.close('all')
     
 
 #%%
@@ -253,8 +297,12 @@ def graph_confusion(Y_true, Y_predict, label, path):
     fig,axx = plt.subplots(nrows=1, ncols=2, figsize=(11,5))
     
     ax = axx[0]
-    cm = metrics.confusion_matrix(Y_true, Y_predict)
+    
+    cm = metrics.confusion_matrix(Y_true.ravel(), Y_predict.ravel())
     #cm = cm/ cm.max()
+    print(cm)
+    
+    savejson(cm.tolist(), path+'confusion2/', label)    
     ax.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
     ax.set_title('Confusion Matrix of ' + label)
     
@@ -273,6 +321,8 @@ def graph_confusion(Y_true, Y_predict, label, path):
     ax = axx[1]
     cm = metrics.confusion_matrix(y_bin.ravel(), y_pred_bin.ravel())
     #cm = cm/ cm.max()
+    print(cm)
+    savejson(cm.tolist(), path+'confusion2/', label + '_bin')
     plt.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
     ax.set_title('Binary Matrix of ' + label)
     
@@ -287,11 +337,77 @@ def graph_confusion(Y_true, Y_predict, label, path):
     plt.colorbar()    
 
     
-    savefig(plt, path+'confusion/', label + '.svg')
+    savefig(plt, path+'confusion/', label)
+    
+    
+
+
+def graph_confusion2(Y_true, Y_predict, label, path):
+
+    fig,axx = plt.subplots(nrows=1, ncols=2, figsize=(11,5))
+    
+    ax = axx[0]
+    
+    cm = metrics.confusion_matrix(Y_true.ravel(), Y_predict.ravel())
+    #cm = cm/ cm.max()
+    
+    cmsum = cm.sum(axis=1)
+    newcm = cm.T/cmsum
+    cm = newcm.T
+    
+    savejson(cm.tolist(), path+'confusion2/', label)
+    ax.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
+    ax.set_title('Confusion Matrix of ' + label)
+    
+    tick_marks = np.arange(len(np.unique(Y_true)))
+    ax.set_xticks(tick_marks)
+    ax.set_yticks(tick_marks)
+    ax.set_ylabel('True labels')
+    ax.set_xlabel('Predicted labels')
+    fig.gca().invert_yaxis()
+    
+    lb = LabelBinarizer()
+    y_bin = lb.fit_transform(Y_true)
+    y_pred_bin = lb.transform(Y_predict)
+    
+    
+    ax = axx[1]
+    cm = metrics.confusion_matrix(y_bin.ravel(), y_pred_bin.ravel())
+    #cm = cm/ cm.max()
+    
+    cmsum = cm.sum(axis=1)
+    newcm = cm.T/cmsum
+    cm = newcm.T
+    
+    savejson(cm.tolist(), path+'confusion2/', label + '_bin')
+    plt.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
+    ax.set_title('Binary Matrix of ' + label)
+    
+    tick_marks = np.arange(len(np.unique(y_bin)))
+    ax.set_xticks(tick_marks)
+    ax.set_yticks(tick_marks)
+    ax.set_ylabel('True labels')
+    ax.set_xlabel('Predicted labels')
+    
+    fig.gca().invert_yaxis()
+    fig.tight_layout()
+    plt.colorbar()    
+
+    
+    savefig(plt, path+'confusion2/', label)
+
 #%%
+
+def savejson(file, path, filename):
+    mkdir_LR(path)    
+    with open(path+filename + '.txt', 'w') as outfile:
+        json.dump(file, outfile)
+    
 def savefig(plt, path, filename):
     mkdir_LR(path)
-    plt.savefig(path + filename, dpi=1200, format='png' )
+    form = 'png'
+    plt.savefig(path + filename + '.' + form, dpi=600, format=form )
+    
 
     
 #%%
@@ -300,20 +416,20 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
     
     labels = []
     for i, (desc, top_scores) in enumerate(kepttopscores.items()):
-        mean_scores = []
+        cum_mean_scores = 0
         labels.append(desc)
-        for j, score in enumerate(top_scores):
-            if j!=0:            
-                plt.bar(i+0.3, score.mean_validation_score, bottom=mean_scores[j-1] ,yerr=np.std(score.cv_validation_scores),  ecolor='r', color='w', align='center')
-            else:
-                plt.bar(i+0.3, score.mean_validation_score,yerr=np.std(score.cv_validation_scores), ecolor='r', color='w', align='center')
-            mean_scores.append(score.mean_validation_score)
+        for score in top_scores:
+            plt.bar(i+0.3, score.mean_validation_score, bottom=cum_mean_scores ,yerr=np.std(score.cv_validation_scores),  ecolor='r', color='w', align='center')
+            cum_mean_scores += score.mean_validation_score
             
     
     plt.ylabel('Scores')
-    plt.xticks(np.arange(0, len(labels),1)+0.3, labels, rotation=45)
+    plt.xticks(np.arange(0, len(labels),1)+0.3, labels, rotation=20)
+    plt.tight_layout()
     
-    savefig(plt, path,  method + '5topscores.svg')
+    savefig(plt, path,  method + '5topscores')
+    
+    plt.close()
     
     
 if __name__ == "__main__":
@@ -343,6 +459,8 @@ if __name__ == "__main__":
                        'pSVC': psvc1,
                        'rsvc': rsvc,
                        'psvc0.1':psvc01}
+                       
+    
     #%%
                        
     import LoadingTestData
