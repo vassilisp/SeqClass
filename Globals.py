@@ -63,17 +63,17 @@ def clfColors(clf):
         if isinstance(clf, MultinomialNB):
             colorarg = 'b-.'
         elif isinstance(clf, SVC):
-            colorarg = 'm-'
+            colorarg = 'm-,'
         elif isinstance(clf, LinearSVC):
-            colorarg = 'r-'
-        elif isinstance(clf, SVC):
-            colorarg = 'c-'
-        elif isinstance(clf, SVC):
-            colorarg = 'y-'
-        elif isinstance(clf, SVC):
-            colorarg = 'b--'
-        elif isinstance(clf, SVC):
-            colorarg = 'm--'
+            colorarg = 'r-x'
+        elif isinstance(clf, LDA):
+            colorarg = 'c-o'
+        elif isinstance(clf, QDA):
+            colorarg = 'y-+'
+        elif isinstance(clf, DecisionTreeClassifier):
+            colorarg = 'b--o'
+        elif isinstance(clf, AdaBoostClassifier):
+            colorarg = 'm--x'
             
     except:
         pass

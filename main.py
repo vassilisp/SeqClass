@@ -21,11 +21,11 @@ con = DBconnection.getConnection()
 
 A = DBconnection.connectAndFetchArray(BasicQueries.getAllProcessIDs())
 A = A[:,0]
-A = [ 'pro48937']#'pro48556',#'pro307653'
+A = [ 'pro208959', 'pro208105']#'pro48556',#'pro307653'
 
 
 #%% Setup env
-generate_processID_stats = False
+generate_processID_stats = True
 
 reporter = Reporter()
 labels = []
@@ -34,10 +34,10 @@ results_topScores = []
 
 cnt = 0
 #%%
-dividers = {100:'batch100', 200:'batch200'}#0:'full', 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
+dividers = { 0:'full', 200:'batch200'}# ,, 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
 def main():
 
-    tokenList = {'2':2, '4':4} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
+    tokenList = {'2':2, '4':4}# '1':1, }#'full':0} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
     q_dividers = ['clientId'] #'clientId,subSession' -- if added - add also a FOR LOOP
     
     
@@ -216,8 +216,18 @@ def run(X_develop, Y_develop, proID, tokens, div, div_path, SELECT_PIPELINE=1):
             text, top_scores = reportSCORES(estimator_pipe.grid_scores_[:20],name=clf_name, pipe_de=pipe_desc, dr = dr_dic)
             savepickle(top_scores, pipe_path + 'topScores/', filename_full + '_topScores.pickle')
             
+            
+            
+            if clf_name == 'DecisionTreeClassifier':
+                clf_name == 'DecisionTree'
+                
             clf_descr = clf_name
             if dr_name != '':
+                if dr_name =='TruncatedSVD':
+                    dr_name = 'SVD'
+                elif dr_name == 'RandomizedPCA':
+                    dr_name = 'PCA'
+                
                 clf_descr += ' (' + dr_name + ')'
             
             kept_all_best_params.update({clf_descr:best_params})

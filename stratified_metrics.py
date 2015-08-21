@@ -5,6 +5,8 @@ Created on Mon Aug  3 13:50:17 2015
 @author: vpan
 """
 
+import traceback
+
 from sklearn.cross_validation import StratifiedKFold, cross_val_predict, cross_val_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC, LinearSVC
@@ -25,8 +27,12 @@ import sys
 
 import json
 
+markers = ['-','-+','--', '-.',':', ':+','-x','->','--x','--o','--+','-->','-o','--D','-*','-D']
+import itertools
+
+
 def EVALUATE_TEST(X,Y, kept_estimators, path, method):
-    
+    styles = itertools.cycle(markers)
     
     t0 = time()
     cv = StratifiedKFold(Y, n_folds=4,shuffle=True)
@@ -95,7 +101,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             mean_tpr = 0.0
             mean_fpr = np.linspace(0,1,100)
     
-            print('Starting cross validation')
+            print('Starting cross validation of ', estim_descr)
             x=X
             for i, (train,test) in enumerate(cv):
                 estimator = clone(kestimator)
@@ -144,15 +150,26 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             #colorargs = clfColors(estimator)
             
-            rocsax.plot(mean_fpr, mean_tpr, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc)
+            cst = next(styles)
+
+            rocsax.plot(mean_fpr, mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc)
+            
+            tosave = [mean_fpr.tolist(), mean_tpr.tolist()]
+            savejson(tosave,path, method + '_' + estim_descr + '___roccurve_DATA')
     
-            falseax.plot(mean_fpr, 1-mean_tpr, lw=1.2, label= estim_descr+' auc: %0.3f'% mean_auc )
-            falseLax.plot(mean_fpr, 1-mean_tpr, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc )
+            falseax.plot(mean_fpr, 1-mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f'% mean_auc )
+            falseLax.plot(mean_fpr, 1-mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc )
+            ttt = 1-mean_tpr
+            tosave = [mean_fpr.tolist(), ttt.tolist()]        
+            savejson(tosave, path, method + '_' + estim_descr + '___missedalarms_DATA')
             
             train_times = t_train.mean(axis=0)
             std_train = t_train.std(axis=0)
             test_times = t_predict.mean(axis=0)
             std_test = t_predict.std(axis=0)
+            
+            tosave = [train_times.tolist(), std_train.tolist(), test_times.tolist(), std_test.tolist()]
+            savejson(tosave, path, method + '_' + estim_descr + '___traintesttimes_DATA')
         
             #%%
             p1 = timebax.bar(j+0.3, train_times, yerr=std_train, ecolor='b', color='r', align='center')
@@ -163,6 +180,9 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             y_score_mean = y_score.mean()
             y_score_std = y_score.std()
             p3 = scorax.bar(j+0.3, y_score_mean, yerr=y_score_std, ecolor='r', color='w', align='center')
+            
+            tosave = [y_score_mean.tolist(), y_score_std.tolist()]
+            savejson(tosave, path, method + '_' + estim_descr + '___scores_DATA')
             
             #%%
             
@@ -186,7 +206,11 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
                 res = metrics.fbeta_score(y_real, y_prediction, b, average='weighted')
                 results.append(res)                
             
-            fmeasurax.plot(beta, results, label=estim_descr)
+            
+            fmeasurax.plot(beta, results, cst, label=estim_descr, markevery=0.1)
+            
+            tosave = [beta.tolist(), results]
+            savejson(tosave, path, method + '_' + estim_descr + '___fmeasure_DATA')
 
         #%%
             """
@@ -213,14 +237,20 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             graph_confusion(y_real, y_prediction, estim_descr, path)
             graph_confusion2(y_real, y_prediction, estim_descr, path)
-        except:
+        except Exception as e:
             print(sys.exc_info())
+            print(e)
+            print('-'*50)
+            print(traceback.print_stack)
+            print(traceback.print_exc)
+            
+            
     #%%              
     yticks = np.arange(0,1,0.1)
     
     rocsax.legend(loc='best')
     rocsax.plot([0,1], [0,1], 'b--', lw=0.6)
-    rocsax.set_xlim([0,1])
+    #rocsax.set_xlim([0,1])
     rocsax.set_ylim([0,1])
     rocsax.set_xlabel('FALSE POSITIVE (%)')
     rocsax.set_ylabel('TRUE POSITIVE (%)')
@@ -233,7 +263,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
         timebax.legend( (p2[0],p1[0]), ('test', 'train'), loc='best' )
         timebax.set_ylabel('time (s)')
         timebax.set_xticks(np.arange(0, len(labels),1)+0.3)        
-        timebax.set_xticklabels(labels, rotation=15)
+        timebax.set_xticklabels(labels, rotation=15, ha='right')
         timebars.tight_layout()
     except:
         pass
@@ -241,7 +271,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     falseax.set_ylabel('MISSING ALARMS (%)')
     falseax.set_xlabel('FALSE ALARMS (%)')
     falseax.legend(loc='best')
-    falseax.set_xlim([0,1])
+    #falseax.set_xlim([0,1])
     falseax.set_ylim([0,1])
     falseax.set_yticks(yticks)
     falseax.grid(b=True ,which='major')
@@ -249,8 +279,8 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     
     falseLax.set_ylabel('MISSING ALARMS (%)')
     falseLax.set_xlabel('FALSE ALARMS (%)')
-    falseLax.legend(loc='best')
-    falseLax.set_xlim([0.001,1])
+    falseLax.legend(loc='upper right')
+    #falseLax.set_xlim([0.01,1])
     falseLax.set_ylim([0,1])
     falseLax.set_yticks(yticks)
     falseLax.set_xscale('log')
@@ -260,18 +290,21 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     
     scorax.set_ylabel('ACCURACY (jaccard similarity)')
     scorax.set_xticks(np.arange(0, len(labels),1)+0.3)        
-    scorax.set_xticklabels(labels, rotation=20)
+    scorax.set_xticklabels(labels, rotation=20, ha='right')
     scor.tight_layout()
     
     savefig(rocs, path,  method + '_roccurve')
     savefig(falseL, path,  method + '_missedalarms_log')
     savefig(false, path,  method + '_missedalarms')
     
-    rocsax.set_xlim([0.001,1])
+    rocsax.set_xlim([0.01,1])
     rocsax.set_ylim([0,1])
     del rocsax.lines[-1]
+    rocsax.legend()
+    rocsax.legend(loc='lower right')
     rocsax.set_yticks(yticks)
     rocsax.set_xscale('log')
+    rocsax.grid(b=True, which='minor')
     savefig(rocs, path,  method + '_roc_curvelog')
     
     savefig(scor, path, method + '_scores')
@@ -302,7 +335,7 @@ def graph_confusion(Y_true, Y_predict, label, path):
     #cm = cm/ cm.max()
     print(cm)
     
-    savejson(cm.tolist(), path+'confusion2/', label)    
+    savejson(cm.tolist(), path+'confusion/', label)    
     ax.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
     ax.set_title('Confusion Matrix of ' + label)
     
@@ -322,7 +355,7 @@ def graph_confusion(Y_true, Y_predict, label, path):
     cm = metrics.confusion_matrix(y_bin.ravel(), y_pred_bin.ravel())
     #cm = cm/ cm.max()
     print(cm)
-    savejson(cm.tolist(), path+'confusion2/', label + '_bin')
+    savejson(cm.tolist(), path+'confusion/', label + '_bin')
     plt.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
     ax.set_title('Binary Matrix of ' + label)
     
@@ -399,11 +432,20 @@ def graph_confusion2(Y_true, Y_predict, label, path):
 #%%
 
 def savejson(file, path, filename):
-    mkdir_LR(path)    
-    with open(path+filename + '.txt', 'w') as outfile:
-        json.dump(file, outfile)
-    
+    if __name__ == "__main__":
+        #return
+        pass
+        
+    try:
+        mkdir_LR(path)    
+        with open(path+filename + '.txt', 'w') as outfile:
+            json.dump(file, outfile)
+    except:
+        print('ERROR SAVING')
 def savefig(plt, path, filename):
+    if __name__ == "__main__":
+        return
+        
     mkdir_LR(path)
     form = 'png'
     plt.savefig(path + filename + '.' + form, dpi=600, format=form )
@@ -424,7 +466,7 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
             
     
     plt.ylabel('Scores')
-    plt.xticks(np.arange(0, len(labels),1)+0.3, labels, rotation=20)
+    plt.xticks(np.arange(0, len(labels),1)+0.3, labels, rotation=20, ha='right')
     plt.tight_layout()
     
     savefig(plt, path,  method + '5topscores')
@@ -435,7 +477,7 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
 if __name__ == "__main__":
     from sklearn.datasets import make_classification, load_iris
     
-    X,Y = make_classification(n_samples=1000, n_classes=30 ,n_informative=10, n_features=1000)
+    X,Y = make_classification(n_samples=1000, n_classes=30 ,n_informative=10, n_features=200)
     #X = load_iris().data
     #Y = load_iris().target
     X= np.abs(X)    
@@ -466,7 +508,7 @@ if __name__ == "__main__":
     import LoadingTestData
 
     #X,Y = LoadingTestData.loadTestData('pro307653', 'clientId', 1)                       
-    X,Y = LoadingTestData.loadTestData('pro48556', 'clientId', 0) 
+    X,Y = LoadingTestData.loadTestData('pro48556', 'clientId', 1) 
     #%%
     EVALUATE_TEST(X,Y,kept_estimators, '/home/vpan/TESTSTESTTST/', 'testimator')
         

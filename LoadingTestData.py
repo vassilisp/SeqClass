@@ -10,7 +10,7 @@ def loadTestData(processID, divider, tokens):
     cur = con.cursor()
 
     token_string = 'refererIDXxX, targetIDXxX'
-    if tokens!=0:
+    if tokens!=0 and tokens!='0':
         token_string = token_string.replace('XxX', str(tokens))
     else:
         token_string = token_string.replace('XxX', '')

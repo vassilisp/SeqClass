@@ -116,11 +116,11 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
             DRS = get_DRS()                
             for DR in DRS:
                 CLF_pipeDR = Pipeline([
-                                 ('tfidfVec', TfidfVectorizer()),
+                                 ('tfidfVec', TfidfVectorizer(ngram_range=((1,1)),binary=True, sublinear_tf=True)),
                                  ('toDense', dense),
                                  ('gus', GenericUnivariateSelect(mode='percentile')),
                                  ('dr', DR),
-                                 ('stad', Normalizer()),
+                                 #('stad', Normalizer()),
                                  ('clf', estimator)])
                 #pack preprocessing params and estimation params together
                 params_DR = pre_params.copy()
@@ -132,13 +132,35 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                                     param_grid=params_DR, cv=cv, scoring = scoring, error_score=0,
                                     verbose = 10)
                 estimators_grid3.append(grid3)
+
     
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        #Custom extra pipes    
+    CLF_pipeEXTRA = Pipeline([
+                             ('tfidfVec', TfidfVectorizer(ngram_range=((1,1)),binary=True, use_idf=True, sublinear_tf=True)),
+                             ('gus', GenericUnivariateSelect(mode='percentile')),                             
+                             ('clf', MultinomialNB())])
+    
+    params_custom = pre_params.copy()
+    params_custom.update({'clf__alpha': [1, 0.1, 0.001],
+                          #'tfidfVec__ngram_range':[(1,1), (2,2), (3,3)]})
+        
+    grid4 =GridSearchCV(estimator=CLF_pipeEXTRA, n_jobs=-1, refit=False,
+                                    param_grid=params_custom, cv=cv, scoring = scoring, error_score=0,
+                                    verbose = 10)
+    
+    estimators_grid3.append(grid4)
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++      
     
     ##Gather all generated estimator pipelines:
     generated_pipelines = {}
     generated_pipelines.update({'basic':estimators_grid1})
     generated_pipelines.update({'withSTD':estimators_grid2})
     generated_pipelines.update({'withDR':estimators_grid3})
+    
+                           
+                             
     
     return generated_pipelines
     #%%
@@ -199,14 +221,14 @@ def findclf_name(estimator):
 #%%Define Preprocessing and feature extractions steps      
 def get_pre_params():
 
-    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
+    tfidfVec_params = {#'tfidfVec__ngram_range': ((1,1),(2,2)),#, (1,1)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
                         #'tfidfVec__max_df': (0.9, 0.7),# 0.5, 0.3),
-                        'tfidfVec__binary': (True, False),
+                        #'tfidfVec__binary': (True, False),
                         #'tfidfVec__norm': (None, 'l1', 'l2'),
                         'tfidfVec__use_idf': (True, False),
-                        'tfidfVec__sublinear_tf': (True, False)
+                        #'tfidfVec__sublinear_tf': (True, False)
                         }
-    gus_params = {'gus__param': (10, 60, 90)}
+    gus_params = {'gus__param': (15, 60, 80)}
     #gus_params = {'gus__param': (10, 20, 30, 40, 50, 60, 70, 80, 90, 100),
     #                  'gus_score_func': (f_classif(), chi2())}
     
@@ -229,12 +251,12 @@ def get_std_params():
 #%%Define classifier parameters                
 def get_estimators():
     lSVC_params = {
-                    'clf__estimator__C': [0.001, 0.01, 1, 10],# 0.1, 1, 10, 100),
+                    #'clf__estimator__C': [0.001, 0.01, 1, 10],# 0.1, 1, 10, 100),
                       #'clf__gamma': (1, 0.1)}# 0.01)#, 0.001, 0.0001, 0.00001)
                    }
     
-    SVC_params = {'clf__estimator__C': (0.001, 0.01, 1, 10),# 1, 10, 100),
-                  'clf__gamma': (1, 0.1, 0.01, 0.001,)# 0.0001, 0.00001)}                  
+    SVC_params = {#'clf__estimator__C': (0.001, 0.01, 1, 10),# 1, 10, 100),
+                  #'clf__gamma': (1, 0.01, 0.0001,)# 0.0001, 0.00001)}                  
                   #'clf__estimator__kernel': ('rbf', 'poly', 'sigmoid')
                   }
     
@@ -264,13 +286,12 @@ def get_estimators():
     
     estimators = []
     estimators_params = []
-    
-    
+
     estimators.append(LDA())
     estimators_params.append(LDA_params)
 
-    estimators.append(QDA())
-    estimators_params.append(QDA_params) 
+    #estimators.append(QDA())
+    #estimators_params.append(QDA_params) 
 
     #estimators.append(MultinomialNB())
     #estimators_params.append(MNB_params)
@@ -281,8 +302,8 @@ def get_estimators():
     estimators.append(ovrSVCrbf)
     estimators_params.append(SVC_params)
 
-    estimators.append(DecisionTreeClassifier())
-    estimators_params.append(DT_params)
+    #estimators.append(DecisionTreeClassifier())
+    #estimators_params.append(DT_params)
 
        
     
@@ -306,13 +327,13 @@ def get_DRS():
     res = []
     
     res.append(empty)
-    res.append(FastICA())
+    ##res.append(FastICA()) -- EXTREMELY SLOW, DONT TRY IT OUT
     res.append(TruncatedSVD())
-    res.append(RandomizedPCA())
-    return res# empty, TruncatedSVD(),
+    #res.append(RandomizedPCA())
+    return res
 def get_dr_params():
     dr_params = {}
-    dr_params = {'dr__n_components': (10,100, 1000)#,500, 1500)# 'mle',100,500,1000,3000
+    dr_params = {'dr__n_components': (10, 50,100, 500)#,500, 1500)# 'mle',100,500,1000,3000
                 }
     return dr_params
     
@@ -351,7 +372,8 @@ class noDR(BaseEstimator, TransformerMixin):
         if self.ncomp == 100:
             return X
         else:
-            raise FitFailedWarning
+            #raise FitFailedWarning
+            return X
         
     def set_params(self, **kargs):
         if 'n_components' in kargs:
