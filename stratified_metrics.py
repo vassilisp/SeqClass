@@ -252,7 +252,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             graph_confusion(y_real, y_prediction, estim_descr, path)
             graph_confusion2(y_real, y_prediction, estim_descr, path)
             graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0)
-            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '(fpr0.124-tpr0.786)', path, thresh=0.0733)
+            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.0733)
             graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.1)
         except Exception as e:
             print(sys.exc_info())
@@ -386,11 +386,14 @@ def graph_confusion(Y_true, Y_predict, label, path):
     fig.tight_layout()
     plt.colorbar()    
 
-
+    cmsum = cm.sum(axis=1)
+    newcm = cm.T/cmsum
+    newcm = newcm.T
     
     for i in range(len(cm)):
         for j in range(len(cm)):
-                ax.annotate(cm[i,j], xy=(j, i), xytext=(j, i), ha='center', va='center')
+            ax.annotate(str(cm[i,j]) + '\n' + '('+ str(newcm[i,j])[:5] + ')', xy=(j, i), xytext=(j, i), ha='center', va='center')
+            
     
     savefig(plt, path+'confusion/', label)
 
@@ -403,8 +406,39 @@ def graph_confusion_pb(Y_true, Y_pb, label, path, thresh = 0):
         Y_predict = np.zeros_like(Y_true)
         Y_predict[Y_pb>=thresh] = 1
         
-        graph_confusion(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
-        graph_confusion2(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
+        #graph_confusion(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
+        #graph_confusion2(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
+        
+
+        
+        fig, ax = plt.subplots(figsize=(8,6))
+        
+        cm = metrics.confusion_matrix(Y_true.ravel(), Y_predict.ravel())
+        
+        cmsum = cm.sum(axis=1)
+        newcm = cm.T/cmsum
+        newcm = newcm.T
+    
+        savejson(newcm.tolist(), path+'confusion2/', label + '_bin')
+        plt.imshow(newcm, interpolation='nearest', cmap = plt.cm.Blues)
+        ax.set_title('Binary Matrix of t' +str(thresh*100) +' ' + label)
+    
+        tick_marks = np.arange(len(np.unique(Y_true)))
+        ax.set_xticks(tick_marks)
+        ax.set_yticks(tick_marks)
+        ax.set_ylabel('True labels')
+        ax.set_xlabel('Predicted labels')
+    
+        fig.gca().invert_yaxis()
+        fig.tight_layout()
+        plt.colorbar()    
+
+        for i in range(len(cm)):
+            for j in range(len(cm)):
+                ax.annotate(str(cm[i,j]) + '\n' + '('+ str(newcm[i,j])[:5] + ')', xy=(j, i), xytext=(j, i), ha='center', va='center')
+    
+        savefig(plt, path+ 'my/confusion2/', label)
+        
     else:
         pass
         
@@ -512,6 +546,10 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
     plt.close()
     
     #%%
+def loadandrun(path):
+    import glob
+    search_path = path + '*.pickle'
+    #print glob.glob()
     
 if __name__ == "__main__":
     from sklearn.datasets import make_classification, load_iris
