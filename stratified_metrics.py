@@ -30,7 +30,7 @@ import json
 markers = ['-','-+','--', '-.',':', ':+','-x','->','--x','--o','--+','-->','-o','--D','-*','-D']
 import itertools
 
-
+#%%
 def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     styles = itertools.cycle(markers)
     
@@ -120,6 +120,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
                 y_real.append(Y[test])
                 
                 y_pb = estimator.predict_proba(x[test])
+                
                 y_pb_all.append(y_pb)
                 
                 y_scores.append(estimator.score(x[test], Y[test]))
@@ -134,7 +135,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
                                 
                 
                 
-                fpr, tpr, _ = metrics.roc_curve(y_true.ravel(), y_pb.ravel())
+                fpr, tpr, thr = metrics.roc_curve(y_true.ravel(), y_pb.ravel())
                 mean_tpr += interp(mean_fpr,fpr,tpr)
                 mean_tpr[0]=0
                 #+++
@@ -152,9 +153,33 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             cst = next(styles)
 
-            rocsax.plot(mean_fpr, mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc)
+#%%get mean thr
             
-            tosave = [mean_fpr.tolist(), mean_tpr.tolist()]
+            #%%
+            
+            y_real = np.concatenate(y_real)
+            y_prediction = np.concatenate(y_prediction)
+            y_pb_all = np.concatenate(y_pb_all)
+    
+                
+            #%%
+                
+                        
+            lb = LabelBinarizer()
+            lb.fit(Y)                        
+            y_real_bin = lb.transform(y_real)
+            
+            #y_prediction_bin = lb.transform(y_prediction)
+
+            masq_y_real_bin = 1 - y_real_bin
+            masq_y_pb_all = 1 - y_pb_all            
+            mfpr,mtpr, mthr = metrics.roc_curve(masq_y_real_bin.ravel(), masq_y_pb_all.ravel())
+            #testing again
+            #rocsax.plot(mfpr, mtpr, lw=0.5, label= 'my' + estim_descr)
+#%%
+            rocsax.plot(mean_fpr, mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f' % mean_auc)
+
+            tosave = [mean_fpr.tolist(), mean_tpr.tolist(), mthr.tolist()]
             savejson(tosave,path, method + '_' + estim_descr + '___roccurve_DATA')
     
             falseax.plot(mean_fpr, 1-mean_tpr,cst, lw=1.2, label= estim_descr+' auc: %0.3f'% mean_auc )
@@ -184,24 +209,13 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             tosave = [y_score_mean.tolist(), y_score_std.tolist()]
             savejson(tosave, path, method + '_' + estim_descr + '___scores_DATA')
             
-            #%%
-            
-            y_real = np.concatenate(y_real)
-            y_prediction = np.concatenate(y_prediction)
-            y_pb_all = np.concatenate(y_pb_all)
-    
-            
-            #%%
-            
-                        
-            lb = LabelBinarizer()
-            y_real_bin = lb.fit_transform(y_real)
-            y_prediction_bin = lb.transform(y_prediction)
+
         
             #%%
             #DONE code to create the Fmeasure plots
             beta = np.arange(0.001,4, 0.049)
             results = []
+            
             for b in beta:
                 res = metrics.fbeta_score(y_real, y_prediction, b, average='weighted')
                 results.append(res)                
@@ -211,7 +225,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             tosave = [beta.tolist(), results]
             savejson(tosave, path, method + '_' + estim_descr + '___fmeasure_DATA')
-
+            
         #%%
             """
             fpr, tpr, thr = metrics.roc_curve(y_real_bin.ravel(), y_pb_all.ravel())
@@ -237,12 +251,15 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             graph_confusion(y_real, y_prediction, estim_descr, path)
             graph_confusion2(y_real, y_prediction, estim_descr, path)
+            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0)
+            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '(fpr0.124-tpr0.786)', path, thresh=0.0733)
+            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.1)
         except Exception as e:
             print(sys.exc_info())
             print(e)
             print('-'*50)
-            print(traceback.print_stack)
-            print(traceback.print_exc)
+            print(traceback.print_stack())
+            print(traceback.print_exc())
             
             
     #%%              
@@ -369,10 +386,28 @@ def graph_confusion(Y_true, Y_predict, label, path):
     fig.tight_layout()
     plt.colorbar()    
 
+
+    
+    for i in range(len(cm)):
+        for j in range(len(cm)):
+                ax.annotate(cm[i,j], xy=(j, i), xytext=(j, i), ha='center', va='center')
     
     savefig(plt, path+'confusion/', label)
+
+def graph_confusion_pb(Y_true, Y_pb, label, path, thresh = 0):
     
-    
+    if thresh!=-1:
+        if thresh == 0:
+            thresh = 0.05
+        
+        Y_predict = np.zeros_like(Y_true)
+        Y_predict[Y_pb>=thresh] = 1
+        
+        graph_confusion(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
+        graph_confusion2(Y_true, Y_predict, 'my_t' +str(thresh*100) +'_' + label, path +'my/')
+    else:
+        pass
+        
 
 
 def graph_confusion2(Y_true, Y_predict, label, path):
@@ -410,10 +445,10 @@ def graph_confusion2(Y_true, Y_predict, label, path):
     
     cmsum = cm.sum(axis=1)
     newcm = cm.T/cmsum
-    cm = newcm.T
+    newcm = newcm.T
     
-    savejson(cm.tolist(), path+'confusion2/', label + '_bin')
-    plt.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues)
+    savejson(newcm.tolist(), path+'confusion2/', label + '_bin')
+    plt.imshow(newcm, interpolation='nearest', cmap = plt.cm.Blues)
     ax.set_title('Binary Matrix of ' + label)
     
     tick_marks = np.arange(len(np.unique(y_bin)))
@@ -426,6 +461,9 @@ def graph_confusion2(Y_true, Y_predict, label, path):
     fig.tight_layout()
     plt.colorbar()    
 
+    for i in range(len(cm)):
+        for j in range(len(cm)):
+                ax.annotate(str(cm[i,j]) + '\n' + '('+ str(newcm[i,j])[:5] + ')', xy=(j, i), xytext=(j, i), ha='center', va='center')
     
     savefig(plt, path+'confusion2/', label)
 
@@ -433,7 +471,7 @@ def graph_confusion2(Y_true, Y_predict, label, path):
 
 def savejson(file, path, filename):
     if __name__ == "__main__":
-        #return
+        return
         pass
         
     try:
@@ -473,6 +511,7 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
     
     plt.close()
     
+    #%%
     
 if __name__ == "__main__":
     from sklearn.datasets import make_classification, load_iris
@@ -497,10 +536,11 @@ if __name__ == "__main__":
 
     
     
-    kept_estimators = {'naiveBayes':mnb, 
-                       'pSVC': psvc1,
-                       'rsvc': rsvc,
-                       'psvc0.1':psvc01}
+    kept_estimators = {#'naiveBayes':mnb, 
+                       'pSVC': psvc1
+                       #'rsvc': rsvc,
+                       #'psvc0.1':psvc01
+                       }
                        
     
     #%%

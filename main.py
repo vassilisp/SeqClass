@@ -21,7 +21,7 @@ con = DBconnection.getConnection()
 
 A = DBconnection.connectAndFetchArray(BasicQueries.getAllProcessIDs())
 A = A[:,0]
-A = [ 'pro208959', 'pro208105']#'pro48556',#'pro307653'
+A = [ 'pro208105']#, 'pro208105']#'pro48556',#'pro307653'
 
 
 #%% Setup env
@@ -34,10 +34,10 @@ results_topScores = []
 
 cnt = 0
 #%%
-dividers = { 0:'full', 200:'batch200'}# ,, 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
+dividers = {200:'batch200', 0:'full'}# ,  , 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
 def main():
 
-    tokenList = {'2':2, '4':4}# '1':1, }#'full':0} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
+    tokenList = {'2':2, '1':1}#, '2':2}#'2':2, '4':4}# '1':1, }#'full':0} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
     q_dividers = ['clientId'] #'clientId,subSession' -- if added - add also a FOR LOOP
     
     
