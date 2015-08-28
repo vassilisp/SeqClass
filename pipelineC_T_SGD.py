@@ -22,6 +22,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.lda import LDA
 from sklearn.qda import QDA
+from sklearn.linear_model import SGDClassifier
 
 from sklearn.multiclass import OneVsRestClassifier
 #import feature extraction and Preprocessing modules
@@ -119,7 +120,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                                  ('tfidfVec', TfidfVectorizer(ngram_range=((1,1)),binary=True, sublinear_tf=True)),
                                  ('gus', GenericUnivariateSelect(mode='percentile')),
                                  ('toDense', dense),
-                                 ('dr', DR),
+                                 #('dr', DR),
                                  #('stad', Normalizer()),
                                  ('clf', estimator)])
                 #pack preprocessing params and estimation params together
@@ -143,13 +144,13 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                              ('clf', MultinomialNB())])
     
     params_custom = pre_params.copy()
-    params_custom.update({'clf__alpha': [1, 0.1, 0.001],
-                          'tfidfVec__ngram_range':[(1,1), (2,2), (3,3),(4,4), (8,8)]})
+    params_custom.update({'clf__alpha': [0.1, 0.001],
+                          'tfidfVec__ngram_range':[(3,3),(4,4)]})
         
     grid4 =GridSearchCV(estimator=CLF_pipeEXTRA, n_jobs=-1, refit=False,
                                     param_grid=params_custom, cv=cv, scoring = scoring, error_score=0,
                                     verbose = 10)
-    
+    #INCLUDE CUSTOM NB OR NOT
     estimators_grid3.append(grid4)
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++      
     
@@ -157,7 +158,7 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
     generated_pipelines = {}
     generated_pipelines.update({'basic':estimators_grid1})
     generated_pipelines.update({'withSTD':estimators_grid2})
-    generated_pipelines.update({'withDRnN':estimators_grid3})
+    generated_pipelines.update({'basic':estimators_grid3})
     
                            
                              
@@ -221,14 +222,14 @@ def findclf_name(estimator):
 #%%Define Preprocessing and feature extractions steps      
 def get_pre_params():
 
-    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2),(3,3),(4,4)),#,(8,8)),#, (1,1)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
+    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2)),#(3,3),(4,4)),#,(4,4)),#,(8,8)),#, (1,1)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
                         #'tfidfVec__max_df': (0.9, 0.7),# 0.5, 0.3),
-                        'tfidfVec__binary': (True, False),
+                        #'tfidfVec__binary': (True, False),
                         #'tfidfVec__norm': (None, 'l1', 'l2'),
-                        'tfidfVec__use_idf': (True, False),
+                        #'tfidfVec__use_idf': (True, False),
                         #'tfidfVec__sublinear_tf': (True, False)
                         }
-    gus_params = {'gus__param': (15, 40, 70)}
+    gus_params = {'gus__param': (15, 40, 65)}
     #gus_params = {'gus__param': (10, 20, 30, 40, 50, 60, 70, 80, 90, 100),
     #                  'gus_score_func': (f_classif(), chi2())}
     
@@ -281,14 +282,15 @@ def get_estimators():
 
     #Pack estimators into dictionary
     
-    ovrSVCrbf = OneVsRestClassifier(SVC(kernel='rbf'))
-    ovr_lsvc = OneVsRestClassifier(SVC(kernel='linear'))
+    #ovrSVCrbf = OneVsRestClassifier(SVC(kernel='rbf'))
+    #ovr_lsvc = OneVsRestClassifier(SVC(kernel='linear'))
+    ovr_lsvc = LinearSVC()
     
     estimators = []
     estimators_params = []
 
-    estimators.append(LDA())
-    estimators_params.append(LDA_params)
+    #estimators.append(LDA())
+    #estimators_params.append(LDA_params)
 
     #estimators.append(QDA())
     #estimators_params.append(QDA_params) 
@@ -299,11 +301,16 @@ def get_estimators():
     estimators.append(ovr_lsvc)
     estimators_params.append(lSVC_params)
 
-    estimators.append(ovrSVCrbf)
-    estimators_params.append(SVC_params)
+    #estimators.append(ovrSVCrbf)
+    #estimators_params.append(SVC_params)
 
     #estimators.append(DecisionTreeClassifier())
     #estimators_params.append(DT_params)
+
+    
+    #sgd = SGDClassifier(n_jobs=-1)
+    #estimators.append(sgd)
+    #estimators_params.append(SGD_params)
 
        
     
@@ -333,7 +340,7 @@ def get_DRS():
     return res
 def get_dr_params():
     dr_params = {}
-    dr_params = {'dr__n_components': (10, 50,100, 500)#,500, 1500)# 'mle',100,500,1000,3000
+    dr_params = {#'dr__n_components': (10, 50,100, 500)#,500, 1500)# 'mle',100,500,1000,3000
                 }
     return dr_params
     
