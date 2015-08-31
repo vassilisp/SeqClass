@@ -22,7 +22,7 @@ def singleEstImport(estimator, mypickle):
     start = mypickle.find('_noDR_')
     if start != -1:
         start = start + len('_noDR_')
-    else:
+    elif mypickle.find('_TruncatedSVD_') != 0:
         start = mypickle.find('_TruncatedSVD_')
         if start!=-1:
             start = start + len('_TruncatedSVD_')
@@ -30,13 +30,19 @@ def singleEstImport(estimator, mypickle):
         else:
             print('ton ipiaME')
             exit
-            
-    stop = mypickle.find('_bestestimator')
-    if stop == -1:
-        print('ton katapiaME')
-        exit
+    elif  mypickle.find('_SOMETHING_') != 0:
+        start = mypickle.find('_SOMETHING_')
+        name = 'SOMETHING'        
+        
     
-    tmp = mypickle[start:stop]
+    stop = mypickle.find('bestestimator')
+    if stop ==-1:
+        stop = mypickle.find('customestimator')        
+        if stop == -1:
+            print('ton katapiaME')
+            exit
+    
+    tmp = mypickle[start:stop-1]
     name = tmp + ' ' + name
     return name        
     
@@ -79,21 +85,24 @@ def loadclassifiers():
 if __name__ == '__main__':
     
     classifierslist = loadclassifiers()
-    
+    proIDs = ['pro288955']#'pro288817',
+    for proID in proIDs:
     #load X,Y and run test
-    X, Y = LoadingTestData.loadTestData('pro208105', 'clientId',2)
+        X, Y = LoadingTestData.loadTestData(proID, 'clientId',2)
     
-    X, Y, reporter = rebatcher.single_rebatcher(X,Y, 200)
+        X, Y, reporter = rebatcher.single_rebatcher(X,Y, 200)
     
-    #%%
-    ##NAME YUOR METHOD
-    method = 'Testing2-200'
-    #%%
-    exeTime = time.strftime('%d%m_%H%M')
-    path = Globals.getResultsPATH()
+        #%%
+        ##NAME YUOR METHOD
+        method = 'T2-200-w' +proID
+        #%%
+        
+        exeTime = time.strftime('%d%m_%H%M')
+        path = Globals.getResultsPATH()
     
-    path = Globals.getProcessIDPath(method, exeTime)
-    EVALUATE_TEST(X,Y, classifierslist, path, method)
+        path = Globals.getProcessIDPath(method, exeTime)
     
+        EVALUATE_TEST(X,Y, classifierslist, path, method)
+        
     
     

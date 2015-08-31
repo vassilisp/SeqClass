@@ -11,18 +11,24 @@ import numpy as np
 dic = {'1':'refererID1', '2':'refererID2', '3':'refererID3', '4':'refererID4', '0':'refererID'}
 
 tokens = ['1','2','3','4', '0']
+
+proID = 'pro288817'
+
 q1 = """
-        select concat(refererID,':', targetID), count(refererID) as cnt from Preprocess where processID= 'pro208959' group by refererID,targetID order by cnt desc
+        select concat(refererID,':', targetID), count(refererID) as cnt from Preprocess where processID=':processID' group by refererID,targetID order by cnt desc
      """
 
+#q2 verified twice to be a correct query - dont worry again
 q2 = """SELECT refererID AS pages, count(refererID) AS cnt 
         FROM 
-        (SELECT refererID FROM Preprocess WHERE processID= 'pro208959' 
+        (SELECT refererID FROM Preprocess WHERE processID=':processID'
         UNION ALL
-        SELECT targetID FROM Preprocess WHERE processID= 'pro208959') AS allpages
+        SELECT targetID FROM Preprocess WHERE processID=':processID') AS allpages
         GROUP BY refererID ORDER BY cnt DESC
         """
 
+q1 = q1.replace(':processID', proID)
+q2 = q2.replace(':processID', proID)
 
 pages = []
 transitions = []
@@ -43,7 +49,9 @@ for token in tokens:
     cur = con.cursor()
     transitions.append(cur.execute(exe1))
 
-    if token == '1' or token =='2':
+    cut0 = 2
+    cut1 = 100
+    if token == '1' or token =='2' or 1 == 1:
         result = cur.fetchall()
         A = np.asarray(result)
     
@@ -52,13 +60,18 @@ for token in tokens:
         freq = freq.astype('int')
         x = np.arange(len(A)) + 1
         
-        freq = freq[0:60]
-        plt.figure(figsize=(9,6))
+        freq = freq[cut0:cut1]
+        x = x[cut0:cut1]
+        fig, ax = plt.subplots(figsize=(12,6))
         plt.bar(x,freq, align='center')
         #plt.xticks(x,trans, rotation=45, ha='right')
-        plt.title('Transition Frequencies')
+        plt.title('Transition Frequencies (tokens=' + str(token) + ')')
         plt.xlabel('transitions')
         plt.ylabel('frequency')
+        plt.autoscale(False)
+        ax.set_xlim(cut0,cut1)
+        form = 'svg'
+        fig.savefig(str(proID) + '_page_freq_t' + str(token) + '.' + form  , dpi=600, format=form)        
         
     con.close()
 
@@ -70,7 +83,7 @@ for token in tokens:
     
     pages.append(cur.execute(exe2))
     
-    if token == '1' or token =='2':
+    if token == '1' or token =='2' or 1 == 1:
         result = cur.fetchall()
         A = np.asarray(result)
     
@@ -79,14 +92,19 @@ for token in tokens:
         freq = freq.astype('int')
     
         x = np.arange(len(A)) + 1
-        freq = freq[0:60]
-        plt.figure(figsize=(9,6))
+        freq = freq[cut0:cut1]
+        x = x[cut0:cut1]
+        fig, ax = plt.subplots(figsize=(12,6))
         plt.bar(x,freq, align='center')
-        plt.title('Page Frequencies')
+        plt.title('Page Frequencies  (tokens=' + str(token) + ')')
         plt.xlabel('pages')
         plt.ylabel('frequency')
+        plt.autoscale(False)
+        ax.set_xlim(cut0,cut1)
+
         #plt.xticks(x,pag, rotation=45, ha='right')
-    
+        form = 'svg'
+        fig.savefig(str(proID) + '_page_freq_t' + str(token) + '.' + form  , dpi=600, format=form)
 
     
     con.close()
@@ -106,18 +124,18 @@ p2 = ax.bar(x, pages, width, align='center',color='y')
 p1 = plt.bar(x + width, transitions, width, align='center', color='b')
 ax.set_xticks(x + width/2)
 ax.set_xticklabels(labels)
-ax.set_xlabel('URL partitions')
+ax.set_xlabel('URL tokens')
 ax.set_ylabel('Unique Count')
 
-ax.legend( (p2[0],p1[0]), ('Pages', 'Transitions'), loc='best' )
+ax.legend( (p2[0],p1[0]), ('Pages', 'Transitions'), loc='upper left' )
 
 autolabel(p1)
 autolabel(p2)
 
 ##TODO savefigures
 
-from stratified_metrics import savefig
-fig.savefig('pro28959_pagetrans_graph' , dpi=600, format='svg')
+form = 'svg'
+fig.savefig(str(proID) + '_pagetrans_graph.' + form  , dpi=600, format=form)
 
 #%%
 def autolabel(rects):
