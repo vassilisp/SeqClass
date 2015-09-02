@@ -12,6 +12,7 @@ from sklearn.naive_bayes import MultinomialNB
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import GenericUnivariateSelect
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
 
 from pipelineC_T_SGD import Densifier
@@ -24,9 +25,10 @@ def createLSVC():
     
     dense = Densifier()
     single_pipe = Pipeline([
-                     ('tfidfVec', TfidfVectorizer(ngram_range=((3,3)),binary=True, sublinear_tf=True, use_idf=True)),
-                     ('gus', GenericUnivariateSelect(mode='percentile', param=65)),
-                     #('toDense', dense),
+                     ('tfidfVec', TfidfVectorizer(ngram_range=((3,3)),binary=False, sublinear_tf=True, use_idf=True)),
+                     #('gus', GenericUnivariateSelect(mode='percentile', param=65)),
+                     ('toDense', dense),
+                     ('scale', MinMaxScaler() ),
                      #('dr', DR),
                      #('stad', Normalizer()),
                      ('clf', estimator)])
@@ -40,9 +42,10 @@ def createNB():
     
     dense = Densifier()
     single_pipe = Pipeline([
-                     ('tfidfVec', TfidfVectorizer(ngram_range=((3,3)),binary=True, use_idf=True)),
-                     ('gus', GenericUnivariateSelect(mode='percentile', param=65)),
+                     ('tfidfVec', TfidfVectorizer(ngram_range=((3,3)),binary=False, use_idf=True)),
+                     #('gus', GenericUnivariateSelect(mode='percentile', param=65)),
                      #('toDense', dense),
+                     #('scale', MinMaxScaler() ),
                      #('dr', DR),
                      #('stad', Normalizer()),
                      ('clf', estimator)])
@@ -102,9 +105,9 @@ if __name__ == '__main__':
     
     custom_pipe = createLSVC()
     testPipe(custom_pipe, X, Y)
-    savepipeline(custom_pipe, 'pro208959_2_200_noDR_LinearSVC_customestimator')
+    #savepipeline(custom_pipe, 'pro208959_2_200_noDR_noGUS_LinearSVC-s_customestimator')
     
     custom_pipe = createNB()
     testPipe(custom_pipe, X, Y)
-    savepipeline(custom_pipe, 'pro208959_2_200_noDR_MultinomialNB_customestimator')
+    savepipeline(custom_pipe, 'pro208959_2_200_noDR_noGUS_MultinomialNB_customestimator')
     

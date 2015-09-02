@@ -69,9 +69,9 @@ for token in tokens:
         plt.xlabel('transitions')
         plt.ylabel('frequency')
         plt.autoscale(False)
-        ax.set_xlim(cut0,cut1)
+        ax.set_xlim(cut0,cut1+1)
         form = 'svg'
-        fig.savefig(str(proID) + '_page_freq_t' + str(token) + '.' + form  , dpi=600, format=form)        
+        fig.savefig(str(proID) + '_trans_freq_t' + str(token) + '.' + form  , dpi=600, format=form)        
         
     con.close()
 
@@ -100,7 +100,7 @@ for token in tokens:
         plt.xlabel('pages')
         plt.ylabel('frequency')
         plt.autoscale(False)
-        ax.set_xlim(cut0,cut1)
+        ax.set_xlim(cut0,cut1+1)
 
         #plt.xticks(x,pag, rotation=45, ha='right')
         form = 'svg'

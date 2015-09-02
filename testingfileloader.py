@@ -85,7 +85,7 @@ def loadclassifiers():
 if __name__ == '__main__':
     
     classifierslist = loadclassifiers()
-    proIDs = ['pro288955']#'pro288817',
+    proIDs = ['pro288817']#'pro288817','pro288955'
     for proID in proIDs:
     #load X,Y and run test
         X, Y = LoadingTestData.loadTestData(proID, 'clientId',2)

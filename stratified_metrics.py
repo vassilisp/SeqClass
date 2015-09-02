@@ -27,7 +27,7 @@ import sys
 
 import json
 
-markers = ['-','-+','-o', '--', '-.',':', ':+','-x','--x','--o','--+','-->','-o','->','--D','-*','-D']
+markers = ['-','-+','-o','-x','-*', '--', ':', ':+','--x','--o','--+','-->','->','--D','-D','-.']
 import itertools
 
 #%%
@@ -190,6 +190,9 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
             #y_prediction_bin = lb.transform(y_prediction)
 
+
+            personalThresh_method(y_real_bin, y_pb_all, estim_descr, path, targetfpr=0.01)
+            
             masq_y_real_bin = 1 - y_real_bin
             masq_y_pb_all =  - y_pb_all            
             mfpr,mtpr, mthr = metrics.roc_curve(masq_y_real_bin.ravel(), masq_y_pb_all.ravel())
@@ -197,7 +200,10 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             
                 
             mauc = metrics.auc(mfpr,mtpr)
-            maucbl = auc_bylimit(mfpr,mtpr, limit=0.01)            
+            mlimit = 0.01
+            maucbl = auc_bylimit(mfpr,mtpr, limit=mlimit)            
+            maucbl = maucbl*(1/mlimit)
+
             
 
 
@@ -213,7 +219,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             mtpr = mtpr[kis]
             mthr = mthr[kis]
             
-            rocsax.plot(mfpr, mtpr, cst, lw=0.8, label= estim_descr+' auc: %0.3f / %0.10f' % (mauc, maucbl), markevery=0.1)
+            rocsax.plot(mfpr, mtpr, cst, lw=0.8, label= estim_descr+' auc: %0.3f / %0.4f' % (mauc, maucbl), markevery=0.1)
             
             
             mean_tpr = mtpr
@@ -300,16 +306,17 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             graph_confusion(y_real, y_prediction, estim_descr, path)
             graph_confusion2(y_real, y_prediction, estim_descr, path)
             
-            graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=-1)
+            #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=-1)
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0)
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.0733)
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.1)
-            
-            thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.01)
+
+            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr + '_graph',path, targetfpr = 0.01)            
+            disc_fpr,disc_tpr, thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.01)            
             if thr_byfpr != -1:
                 graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '_bytargetfpr', path, thresh=thr_byfpr)
             
-            thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.005)
+            disc_fpr,disc_tpr, thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.005)
             if thr_byfpr != -1:
                 graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '_bytargetfpr', path, thresh=thr_byfpr)
                 
@@ -344,8 +351,8 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     except:
         pass
     falseax.plot([0,1], [1,0], 'b--' , lw =0.6)
-    falseax.set_ylabel('MISSING ALARMS (%)')
-    falseax.set_xlabel('FALSE ALARMS (%)')
+    falseax.set_ylabel('MISSING ALARMS')
+    falseax.set_xlabel('FALSE ALARMS')
     falseax.legend(loc='best')
     #falseax.set_xlim([0,1])
     falseax.set_ylim([0,1])
@@ -353,8 +360,8 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
     falseax.grid(b=True ,which='major')
     false.tight_layout()
     
-    falseLax.set_ylabel('MISSING ALARMS (%)')
-    falseLax.set_xlabel('FALSE ALARMS (%)')
+    falseLax.set_ylabel('MISSING ALARMS')
+    falseLax.set_xlabel('FALSE ALARMS')
     falseLax.legend(loc='upper right')
     falseLax.set_xlim([0.001,1])
     falseLax.set_ylim([0,1])
@@ -491,7 +498,7 @@ def graph_confusion_pb(Y_true, Y_pb, label, path, thresh = 0):
         Y_predict = np.zeros_like(Y_true)
         Y_predict[Y_pb>=thresh] = 1
 
-        label = 't' + str(round(thresh*100,3)) + label
+        label = 't' + str(round(thresh*100,3))[:5] + label
         graph_bin_confusion(Y_true, Y_predict, label, path, masquerade=False)
         graph_bin_confusion(Y_true, Y_predict, label, path, masquerade=True)
         
@@ -527,7 +534,7 @@ def predict_by_fpr(Y_real_bin, Y_pb_all, target_fpr):
             tpr = roctpr[keep_i]
             fpr = rocfpr[keep_i]
             print(fpr, tpr, thr)
-            return -thr
+            return fpr,tpr, -thr
         else:
             return -1
                 
@@ -590,9 +597,11 @@ def graph_confusion2(Y_true, Y_predict, label, path):
     ax.imshow(cm, interpolation='nearest', cmap = plt.cm.Blues, vmin=0.0, vmax=1.0)
     ax.set_title('Confusion Matrix of ' + label)
     
-    tick_marks = np.arange(len(np.unique(Y_true)))
-    ax.set_xticks(tick_marks)
-    ax.set_yticks(tick_marks)
+    if len(np.unique(Y_true))<15:    
+        tick_marks = np.arange(len(np.unique(Y_true)))
+        ax.set_xticks(tick_marks)
+        ax.set_yticks(tick_marks)
+
     ax.set_ylabel('True labels')
     ax.set_xlabel('Predicted labels')
     fig.gca().invert_yaxis()
@@ -626,12 +635,146 @@ def graph_confusion2(Y_true, Y_predict, label, path):
 
     for i in range(len(cm)):
         for j in range(len(cm)):
-                ax.annotate(str(cm[i,j]) + '\n' + '('+ str(newcm[i,j])[:5] + ')', xy=(j, i), xytext=(j, i), ha='center', va='center')
+                ax.annotate(str(cm[i,j]) + '\n' + '('+ str(newcm[i,j])[:6] + ')', xy=(j, i), xytext=(j, i), ha='center', va='center')
     
     savefig(fig, path+'confusion2/', label)
 
+
+
 #%%
 
+def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01):
+    t_y_real = y_real_bin.T
+    t_y_pb = y_pb_all.T
+    y_stats = []
+    y_stats2 = "fpr, tpr \n "
+    y_p_predict = np.zeros_like(t_y_real)
+    personalThr = []
+    personalTpr = []
+    personalFpr = []
+    for count, (user,scores) in enumerate(zip(t_y_real, t_y_pb)):
+        fpr, tpr, thr = metrics.roc_curve(user,scores)
+        pfpr,ptpr,pthr = predict_by_fpr(user, scores, targetfpr)
+        
+        y_stats.append([pfpr,ptpr,pthr])
+        
+        y_stats2 += str(pfpr) + ', ' + str(ptpr) + '\n'
+        personalThr.append(pthr)
+        personalTpr.append(ptpr)
+        personalFpr.append(pfpr)
+        
+        y_p_predict_row = np.zeros_like(scores)
+        y_p_predict_row[scores>pthr] = 1
+        
+        y_p_predict[count] = y_p_predict_row
+        
+        
+    y_p_predict = y_p_predict.T
+    
+    
+    fig, ax = plt.subplots(figsize=(9,6))    
+    jj = np.arange(len(personalTpr))+1
+    
+    width = 0.35
+    p1 = ax.bar(jj, personalTpr, width, color='g')
+    p2 = ax.bar(jj-width, personalFpr, width, color='r')
+    
+
+    res = metrics.confusion_matrix(y_real_bin.ravel(), y_p_predict.ravel())
+    afpr = res[1,0]/(res[1,0]+res[1,1])
+    atpr = res[0,0]/(res[0,0]+res[0,1])
+
+    
+    plt.title(label + ' (personalFpr<' + str(targetfpr) + ', overallFpr=' + str(round(afpr,4)) +', overallTpr=' +str(round(atpr,4)) + ')')
+    ax.set_xlabel('Users')
+    ax.set_ylabel('Rates')
+    
+    ax.plot((0,len(personalTpr)+1), (targetfpr,targetfpr),'r-', lw=0.5)
+    ax.plot((0,len(personalTpr)+1), (atpr,atpr),'g-', lw=0.5 )
+    ax.set_xlim(0,len(personalTpr)+1)
+    ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
+    fig.tight_layout()
+    #autolabel(p1)    
+    #autolabel(p2)
+    
+    savefig(fig, path + 'my/', label + 'ind_tpr_personal_thr.svg')
+    
+
+    
+    savejson(y_stats, path + 'my/', label + '_personal_fpr')
+    savejson(y_stats2, path + 'my/', label + '_personal_FPR2TPR')
+    graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=False)
+    graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=True)
+   
+        
+def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
+    t_y_real = y_real_bin.T
+    t_y_pb = y_pb_all.T
+    
+    personal_a_Tpr = []
+    personal_a_Fpr = []
+    afpr, atpr, athr = predict_by_fpr(y_real_bin, y_pb_all, targetfpr)
+    for count, (user,scores) in enumerate(zip(t_y_real, t_y_pb)):
+        y_p_predict_row = np.zeros_like(scores)
+        y_p_predict_row[scores>athr] = 1
+        
+        res = metrics.confusion_matrix(user, y_p_predict_row)
+        apfpr = res[1,0]/(res[1,0]+res[1,1])
+        aptpr = res[0,0]/(res[0,0]+res[0,1])
+        
+        
+        personal_a_Tpr.append(aptpr)
+        personal_a_Fpr.append(apfpr)
+        
+      
+    fig, ax = plt.subplots(figsize=(9,6))    
+    jj = np.arange(len(personal_a_Tpr))+1
+    
+    width = 0.35
+    p1 = ax.bar(jj, personal_a_Tpr, width, align='center', color='g')
+    p2 = ax.bar(jj+width, personal_a_Fpr, width, align='center', color='r')
+    
+    plt.title(label + ' (targetFpr=' + str(targetfpr) + ', overallFpr=' +str(round(afpr,4)) + ', overallTpr=' + str(round(atpr,4)) +')')
+    ax.set_xlabel('Users')
+    ax.set_ylabel('Rates')
+    ax.set_xlim(0,len(personal_a_Tpr)+1)
+    ax.plot((0,len(personal_a_Tpr)+1), (targetfpr,targetfpr), 'r-', lw=0.5)
+    ax.plot((0,len(personal_a_Tpr)+1), (atpr,atpr), 'g-', lw=0.5)
+    ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
+    fig.tight_layout()
+    #autolabel(p1)    
+    #autolabel(p2)
+    
+    savefig(fig, path + 'my/', label+'ind_tpr_personal_thr.svg')
+    
+        
+"""    
+    personalTpr = []
+    personalFpr = []
+
+    for count, (user,scores) in enumerate(zip(t_y_real, t_y_pb)):
+        fpr, tpr, thr = metrics.roc_curve(user,scores)
+        pfpr,ptpr,pthr = predict_by_fpr(user, scores, targetfpr)
+        
+        y_stats.append([pfpr,ptpr,pthr])
+        
+        y_stats2 += str(pfpr) + ', ' + str(ptpr) + '\n'
+        personalTpr.append(ptpr)
+        personalFpr.append(pfpr)
+        
+"""    
+    
+    
+        
+    
+#%%
+def autolabel(rects):
+    # attach some text labels
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%d'%int(height),
+                ha='center', va='bottom')
+                
 def savejson(file, path, filename):
     if __name__ == "__main__":
         return
