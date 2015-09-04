@@ -27,7 +27,7 @@ import sys
 
 import json
 
-markers = ['-','-+','-o','-x','-*', '--', ':', ':+','--x','--o','--+','-->','->','--D','-D','-.']
+markers = ['-','-+','-o','-x','->', '--', ':', ':+','--x','--o','--+','-->','--D','-D','-*','-.']
 import itertools
 
 #%%
@@ -311,7 +311,7 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method):
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.0733)
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.1)
 
-            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr + '_graph',path, targetfpr = 0.01)            
+            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr ,path, targetfpr = 0.01)            
             disc_fpr,disc_tpr, thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.01)            
             if thr_byfpr != -1:
                 graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '_bytargetfpr', path, thresh=thr_byfpr)
@@ -692,6 +692,7 @@ def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01):
     ax.plot((0,len(personalTpr)+1), (targetfpr,targetfpr),'r-', lw=0.5)
     ax.plot((0,len(personalTpr)+1), (atpr,atpr),'g-', lw=0.5 )
     ax.set_xlim(0,len(personalTpr)+1)
+    ax.set_ylim(0,1)
     ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
     fig.tight_layout()
     #autolabel(p1)    
@@ -731,13 +732,14 @@ def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
     jj = np.arange(len(personal_a_Tpr))+1
     
     width = 0.35
-    p1 = ax.bar(jj, personal_a_Tpr, width, align='center', color='g')
-    p2 = ax.bar(jj+width, personal_a_Fpr, width, align='center', color='r')
+    p1 = ax.bar(jj, personal_a_Tpr, width, color='g')
+    p2 = ax.bar(jj-width, personal_a_Fpr, width, color='r')
     
     plt.title(label + ' (targetFpr=' + str(targetfpr) + ', overallFpr=' +str(round(afpr,4)) + ', overallTpr=' + str(round(atpr,4)) +')')
     ax.set_xlabel('Users')
     ax.set_ylabel('Rates')
     ax.set_xlim(0,len(personal_a_Tpr)+1)
+    ax.set_ylim(0,1)
     ax.plot((0,len(personal_a_Tpr)+1), (targetfpr,targetfpr), 'r-', lw=0.5)
     ax.plot((0,len(personal_a_Tpr)+1), (atpr,atpr), 'g-', lw=0.5)
     ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
@@ -745,7 +747,7 @@ def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
     #autolabel(p1)    
     #autolabel(p2)
     
-    savefig(fig, path + 'my/', label+'ind_tpr_personal_thr.svg')
+    savefig(fig, path + 'my/', label+'ovrl_tpr_personal_thr.svg')
     
         
 """    

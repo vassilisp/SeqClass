@@ -21,11 +21,11 @@ con = DBconnection.getConnection()
 
 A = DBconnection.connectAndFetchArray(BasicQueries.getAllProcessIDs())
 A = A[:,0]
-A = ['pro208959']#,'pro208105',  'pro208105']#'pro48556',#'pro307653'
+A = ['pro288817', 'pro288840', 'pro288955', 'pro2881041']#,'pro208105',  'pro208105']#'pro48556',#'pro307653'
 
 
 #%% Setup env
-generate_processID_stats = False
+generate_processID_stats = True
 
 reporter = Reporter()
 labels = []
@@ -66,7 +66,7 @@ def main():
                 token_path = proID_path + 'token' + str(token) + '/'
                 
                 #TODO graph number of unique transitions that change with each different token
-                runTestwithDividers(X,Y,proID, proID_path, token_path, token)
+                #runTestwithDividers(X,Y,proID, proID_path, token_path, token)
             
             reporter.saveReport(proID_path, str(proID) + '_FULL_report.txt')
             

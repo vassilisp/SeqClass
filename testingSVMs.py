@@ -23,7 +23,7 @@ import numpy as np
 
 #%%
 proID = 'pro288817'
-tokens = 2
+tokens = 3
 
 method = 'T2-SVMGS-' +proID
 exeTime = time.strftime('%d%m_%H%M')
@@ -53,7 +53,7 @@ def tester(Xor, Yor, proID, tokens, div):
     c = np.arange(-10,10,0.1 )
     xx = np.ones(len(c))*2
     xx = np.power(xx,c)
-    xx = np.array([1,1.2])
+    #xx = np.array([1,1.2])
     svm_params ={'clf__C': xx.tolist()
                                                                 }# 0.1, 1, 10, 100),
     
@@ -119,21 +119,16 @@ if __name__ == '__main__':
     classifier_dic = loadclassifiers()
 
     estimators = {}
-    estimators.update({'LinearSVC': classifier_dic['LinearSVC ']})
-    estimators.update({'MultinomialNB': classifier_dic['MultinomialNB ']})
+    estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
+    estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
             
     X, Y = LoadingTestData.loadTestData(proID, 'clientId',tokens)
     
     for div in (200,100,50,25):
         entry = tester(X, Y, proID, tokens, div)
-        
-        if div == 200:
-            best_estimators = estimators.copy()
-            best_estimators.update(entry)
-        else:
-            best_estimators = estimators.copy()
-            best_estimators.update(entry)
-    
+
+        best_estimators = estimators.copy()
+        best_estimators.update(entry)
         
         Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
         EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))        
