@@ -66,7 +66,8 @@ def loadTransTimesData(processID):
                 if prev_time !=0:        
                     dif = time - prev_time
                     print(u,'s',session, '---dif:', dif)
-                    if dif>20*60*1000: #m*s*ms
+                    #if dif>20*60*1000: #m*s*ms
+                    if dif>5*60*1000: #m*s*ms
                         print('-'*50, 'outlier')
                     else:
                         acc_time += dif
@@ -124,5 +125,5 @@ if __name__ == '__main__':
     
     plt.xlabel('USERS')
     plt.ylabel('Average time -200 transitions (in minutes)')
-    
-    plt.savefig(proID +'_200transtime.svg', dpi=600, format='svg')
+    plt.title('200 transitions average (single transition avg:' + str(all_avg) + ')')
+    plt.savefig(proID +'_200transtime_with5mindiscard.svg', dpi=600, format='svg')

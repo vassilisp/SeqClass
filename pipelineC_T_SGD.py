@@ -144,21 +144,22 @@ def getPipelines(Y, SELECT_PIPELINE = 'basic'):
                              ('clf', MultinomialNB())])
     
     params_custom = pre_params.copy()
-    params_custom.update({'clf__alpha': [0.1, 0.001],
-                          'tfidfVec__ngram_range':[(3,3),(4,4)]})
+    params_custom.update({'clf__alpha': [0.1, 0.001, 0.01, 1],
+                          'tfidfVec__ngram_range': ((1,1),(2,2),(3,3),(4,4),(5,5),(8,8))
+                          })
         
     grid4 =GridSearchCV(estimator=CLF_pipeEXTRA, n_jobs=-1, refit=False,
                                     param_grid=params_custom, cv=cv, scoring = scoring, error_score=0,
                                     verbose = 10)
     #INCLUDE CUSTOM NB OR NOT
-    estimators_grid3.append(grid4)
+    estimators_grid1.append(grid4)
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++      
     
     ##Gather all generated estimator pipelines:
     generated_pipelines = {}
     generated_pipelines.update({'basic':estimators_grid1})
     generated_pipelines.update({'withSTD':estimators_grid2})
-    generated_pipelines.update({'basic':estimators_grid3})
+    generated_pipelines.update({'withDR':estimators_grid3})
     
                            
                              
@@ -222,11 +223,11 @@ def findclf_name(estimator):
 #%%Define Preprocessing and feature extractions steps      
 def get_pre_params():
 
-    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2)),#(3,3),(4,4)),#,(4,4)),#,(8,8)),#, (1,1)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
+    tfidfVec_params = {'tfidfVec__ngram_range': ((1,1),(2,2),(3,3),(4,4),(5,5),(8,8)),#,(4,4)),#,(8,8)),#, (1,1)), #(2,3),(3,3),(3,4),(4,4)),#,(5,5)),#(13,15),(18,20), (10,12), (15,15)),
                         #'tfidfVec__max_df': (0.9, 0.7),# 0.5, 0.3),
                         #'tfidfVec__binary': (True, False),
                         #'tfidfVec__norm': (None, 'l1', 'l2'),
-                        #'tfidfVec__use_idf': (True, False),
+                        'tfidfVec__use_idf': (True, False),
                         #'tfidfVec__sublinear_tf': (True, False)
                         }
     gus_params = {'gus__param': (15, 40, 65)}
@@ -333,7 +334,7 @@ def get_DRS():
     empty = noDR()
     res = []
     
-    #res.append(empty)
+    res.append(empty)
     ##res.append(FastICA()) -- EXTREMELY SLOW, DONT TRY IT OUT
     res.append(TruncatedSVD())
     #res.append(RandomizedPCA())

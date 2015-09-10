@@ -25,11 +25,7 @@ import numpy as np
 proID = 'pro288817'
 tokens = 3
 
-method = 'T2-SVMGS-' +proID
 exeTime = time.strftime('%d%m_%H%M')
-path = Globals.getResultsPATH()
-
-path = Globals.getProcessIDPath(method, exeTime)
 
 from reporter import Reporter
 
@@ -50,10 +46,10 @@ def tester(Xor, Yor, proID, tokens, div):
     svmpipe = classifier_dic['LinearSVC ']
     svmpipe = clone(svmpipe)
     
-    c = np.arange(-10,10,0.1 )
+    c = np.arange(-10,5,0.1 )
     xx = np.ones(len(c))*2
     xx = np.power(xx,c)
-    #xx = np.array([1,1.2])
+    xx = np.array([1,2])
     svm_params ={'clf__C': xx.tolist()
                                                                 }# 0.1, 1, 10, 100),
     
@@ -116,22 +112,38 @@ def tester(Xor, Yor, proID, tokens, div):
 
 if __name__ == '__main__':
 
+    proID = 'pro288817'
+    tokens = 3
+
     classifier_dic = loadclassifiers()
 
-    estimators = {}
-    estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
-    estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
-            
-    X, Y = LoadingTestData.loadTestData(proID, 'clientId',tokens)
-    
-    for div in (200,100,50,25):
-        entry = tester(X, Y, proID, tokens, div)
+    #div = simple and sliding
 
-        best_estimators = estimators.copy()
-        best_estimators.update(entry)
+    divers_sliding = {batchN:25, min_div:100, max_div:200}
+    divers_simple = {batchN:100, min_div:0, max_div:0}
+    for pages in (True, False):
+        for tok in tokens:
+            estimators = {}
+            estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
+            estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
+                
+            X, Y = LoadingTestData.loadTestData(proID, 'clientId',tok, onlyPages=pages)
         
-        Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
-        EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))        
+            for div in (200,100,50,25):
+                #grid search for optimized C parameter - can be omited
+                entry = tester(X, Y, proID, tokens, div)
+    
+                best_estimators = estimators.copy()
+                best_estimators.update(entry)
+
+
+                method = 'T' + str(tok) +'-SVMGS-P('+str(pages)+')'  +proID
+                
+                path = Globals.getProcessIDPath(method, exeTime)
+                
+                #choose divider method - many options such as simple, accumulating and sliding window
+                Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
+                EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))        
 #%%
 
     

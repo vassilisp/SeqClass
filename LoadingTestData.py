@@ -5,11 +5,16 @@ import numpy as np
 
 
 
-def loadTestData(processID, divider, tokens):
+def loadTestData(processID, divider, tokens, onlyPages=False):
     con = DBconnection.getConnection()
     cur = con.cursor()
 
-    token_string = 'refererIDXxX, targetIDXxX'
+
+    if onlyPages == True:
+        token_string = 'targetIDXxX'
+    else:
+        token_string = 'refererIDXxX, targetIDXxX'        
+        
     if tokens!=0 and tokens!='0':
         token_string = token_string.replace('XxX', str(tokens))
     else:

@@ -25,7 +25,7 @@ A = ['pro288817', 'pro288840', 'pro288955', 'pro2881041']#,'pro208105',  'pro208
 
 
 #%% Setup env
-generate_processID_stats = True
+generate_processID_stats = False
 
 reporter = Reporter()
 labels = []
@@ -37,7 +37,7 @@ cnt = 0
 dividers = {200:'batch200'}#, 0:'full'}# ,  , 100:'batch100' , 200:'batch200', 300:'batch300', 400:'batch400'} 
 def main():
 
-    tokenList = {'2':2}#, '1':1}#, '2':2}#'2':2, '4':4}# '1':1, }#'full':0} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
+    tokenList = {'2':2, '4':4, '3':3}#, '1':1}#, '2':2}#'2':2, '4':4}# '1':1, }#'full':0} #{'1':1, '4':4}  #{'full':0, '1':1, '2':2, '3':3, '4':4}  ###REMEBMER TO TEST USE TARGET IF REFERER EXISTS RULE
     q_dividers = ['clientId'] #'clientId,subSession' -- if added - add also a FOR LOOP
     
     
@@ -61,12 +61,12 @@ def main():
                 reporter.concat_report(statGen.getReport())
             
             for tok_desc, token in tokenList.items():
-                X, Y = LoadingTestData.loadTestData(proID, q_dividers[0], token)
+                X, Y = LoadingTestData.loadTestData(proID, q_dividers[0], token, onlyPages=True)
                 
                 token_path = proID_path + 'token' + str(token) + '/'
                 
                 #TODO graph number of unique transitions that change with each different token
-                #runTestwithDividers(X,Y,proID, proID_path, token_path, token)
+                runTestwithDividers(X,Y,proID, proID_path, token_path, token)
             
             reporter.saveReport(proID_path, str(proID) + '_FULL_report.txt')
             
@@ -103,7 +103,7 @@ def runTestwithDividers(X,Y, proID, proID_path, token_path, token):
         
         
         #reporter.saveReport(proID_path + 'full_report.txt')
-        kept_all_estimators, kept_all_top_scores, report_search = run(X,Y, proID, token, div, div_path, SELECT_PIPELINE=3)
+        kept_all_estimators, kept_all_top_scores, report_search = run(X,Y, proID, token, div, div_path, SELECT_PIPELINE=1)
         
         reporter.concat_report(report_search)
         

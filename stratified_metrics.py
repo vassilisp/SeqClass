@@ -31,11 +31,12 @@ markers = ['-','-+','-o','-x','->', '--', ':', ':+','--x','--o','--+','-->','--D
 import itertools
 
 #%%
-def EVALUATE_TEST(X,Y, kept_estimators, path, method):
+def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
     styles = itertools.cycle(markers)
     
     t0 = time()
-    cv = StratifiedKFold(Y, n_folds=4,shuffle=True)
+    if cv == None:
+        cv = StratifiedKFold(Y, n_folds=4,shuffle=True)
     t1 = time()-t0
     print('computed FOLDS in: ', t1)
     
@@ -801,8 +802,11 @@ def savefig(fig, path, filename, close=True):
     form = 'png'
     fig.savefig(path + filename + '.' + form, dpi=300, format=form )
     
-    if close == True:    
-        plt.close(fig)
+    if close == True:
+        try:
+            plt.close(fig)
+        except:
+            print('X'*50, 'ERROR CLOSING FIGURE')
     
 def keepsignicants(fpr,tpr):
     ki = []

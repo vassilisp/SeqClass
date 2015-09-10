@@ -88,7 +88,7 @@ if __name__ == '__main__':
     proIDs = ['pro288817']#'pro288817','pro288955'
     for proID in proIDs:
     #load X,Y and run test
-        X, Y = LoadingTestData.loadTestData(proID, 'clientId',2)
+        X, Y = LoadingTestData.loadTestData(proID, 'clientId',2, onlyPages=False)
     
         X, Y, reporter = rebatcher.single_rebatcher(X,Y, 200)
     
