@@ -86,15 +86,17 @@ if __name__ == '__main__':
     
     classifierslist = loadclassifiers()
     proIDs = ['pro288817']#'pro288817','pro288955'
+    tokens = 2
+    div = 200
     for proID in proIDs:
     #load X,Y and run test
-        X, Y = LoadingTestData.loadTestData(proID, 'clientId',2, onlyPages=False)
+        X, Y = LoadingTestData.loadTestData(proID, 'clientId',tokens, onlyPages=False)
     
-        X, Y, reporter = rebatcher.single_rebatcher(X,Y, 200)
+        X, Y, reporter = rebatcher.single_rebatcher(X,Y, div)
     
         #%%
         ##NAME YUOR METHOD
-        method = 'T2-200-w' +proID
+        method = 'T'+str(tokens) +'-' + str(div) +'-w' + proID
         #%%
         
         exeTime = time.strftime('%d%m_%H%M')

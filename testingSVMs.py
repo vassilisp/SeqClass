@@ -19,7 +19,7 @@ from pipelineC_T_SGD import findclf_name
 import LoadingTestData
 import rebatcher
 import numpy as np
-
+from masquerfold import MasquerFold
 
 #%%
 proID = 'pro288817'
@@ -31,22 +31,28 @@ from reporter import Reporter
 
 genReport = Reporter()
 genReport.new_report('GridSearch for SVM C value')
-def tester(Xor, Yor, proID, tokens, div):
+def tester(Xor, Yor, proID, token, div, path):
     #%%
     localreport = Reporter()
-    localreport.subreport(str(proID)+'_'+str(tokens)+'_'+str(div))
-    X, Y, repor = rebatcher.single_rebatcher(Xor,Yor, div)
+    localreport.subreport(str(proID)+'_'+str(token)+'_'+str(div))
+    if div[:7] != 'sliding':
+        X, Y, repor = rebatcher.single_rebatcher(Xor,Yor, div)
+        cv = StratifiedKFold(Y, 4)
+        repor.report('using div: ' + str(div))
+    else:
+        X,Y, inter, repor = rebatcher.single_rebatcher2(Xor, Yor, 50, acc=True, min_div=100, max_div=250, get_inter=True)
+        cv = MasquerFold(Yor, inter) 
+        repor.report('using sliding window ' + str(div))
+                
+        
     localreport.concat_report(repor)
     #%%
-    
-    cv = StratifiedKFold(Y, 4)
-    
     classifier_dic = loadclassifiers()
     
     svmpipe = classifier_dic['LinearSVC ']
     svmpipe = clone(svmpipe)
     
-    c = np.arange(-10,5,0.1 )
+    c = np.arange(-5,2,0.2)
     xx = np.ones(len(c))*2
     xx = np.power(xx,c)
     xx = np.array([1,2])
@@ -84,7 +90,7 @@ def tester(Xor, Yor, proID, tokens, div):
     
     dr_name = 'noDR'
     pipe_desc = 'testingSVDgs'
-    filename_starter = str(proID) + '_' + str(tokens) + '_' + str(div) + '_'           
+    filename_starter = str(proID) + '_' + str(token) + '_' + str(div) + '_'           
     filename_descr = pipe_desc + '_' +dr_name +'_'+ clf_name
     filename_full =  filename_starter + filename_descr
     from main import reportSCORES
@@ -112,39 +118,68 @@ def tester(Xor, Yor, proID, tokens, div):
 
 if __name__ == '__main__':
 
-    proID = 'pro288817'
-    tokens = 3
-
+    #proIDs = ['pro288817','pro288955', 'pro288840']
+    proIDs = ['pro288817',]
+    #tokens = [1,2,3]
+    tokens = [2,]
+    pp = [True, False]
+    pp = [False,]
     classifier_dic = loadclassifiers()
 
     #div = simple and sliding
 
-    divers_sliding = {batchN:25, min_div:100, max_div:200}
-    divers_simple = {batchN:100, min_div:0, max_div:0}
-    for pages in (True, False):
+    #divers_sliding = {batchN:25, min_div:100, max_div:200}
+    #divers_simple = {batchN:100, min_div:0, max_div:0}
+    from itertools import product    
+    for pages,proID in product(pp, proIDs):
         for tok in tokens:
             estimators = {}
-            estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
+            #estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
             estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
-                
+##----------(REMOVED FROM HERE)         ------------------------
+            
+
+            div = 'sliding50100250'
+            print('RUNNING ---sliding window---')
+            method = 'T' + str(tok) +'-SVM-P('+str(pages)+')-'  +proID                
+            path = Globals.getProcessIDPath(method, exeTime)               
+            #Loading data
+            X, Y = LoadingTestData.loadTestData(proID, 'clientId',tok, onlyPages=pages)
+            
+            #grid search for optimized C parameter - can be omited           
+            #entry = tester(X, Y, proID, tok, div, path)
+    
+            best_estimators = estimators.copy()
+            #best_estimators.update(entry)
+            
+            #choose divider method - many options such as simple, accumulating and sliding window
+            Xdiv, Ydiv, inter, rep = rebatcher.single_rebatcher2(X,Y, 50, acc=True, min_div=100, max_div=300, get_inter=True)
+            mcv = MasquerFold(Y, inter, n_folds=4)
+            
+            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv) 
+#%%
+#_______________________________________________________
+"""
             X, Y = LoadingTestData.loadTestData(proID, 'clientId',tok, onlyPages=pages)
         
             for div in (200,100,50,25):
-                #grid search for optimized C parameter - can be omited
-                entry = tester(X, Y, proID, tokens, div)
+                #setting up path
+                method = 'T' + str(tok) +'-SVMGS-P('+str(pages)+')'  +proID                
+                path = Globals.getProcessIDPath(method, exeTime)               
+               
+               
+               #grid search for optimized C parameter - can be omited
+                entry = tester(X, Y, proID, tok, div, path)
     
                 best_estimators = estimators.copy()
                 best_estimators.update(entry)
 
 
-                method = 'T' + str(tok) +'-SVMGS-P('+str(pages)+')'  +proID
-                
-                path = Globals.getProcessIDPath(method, exeTime)
+               
                 
                 #choose divider method - many options such as simple, accumulating and sliding window
                 Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
-                EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))        
-#%%
-
+                EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))
+"""
     
 

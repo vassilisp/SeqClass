@@ -123,10 +123,15 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
                 
                 if hasattr(estimator, 'decision_function'):
                     y_pb = estimator.decision_function(x[test])
+                elif hasattr(estimator, 'predict_log_proba'):
+                    y_pb = estimator.predict_log_proba(x[test])
                 else:
                     y_pb = estimator.predict_proba(x[test])
-                    #making scoring by roc easier
-                    y_pb = y_pb * 10000000
+                    #making scoring by roc easier due to isclose grouping
+                    #y_pb = y_pb * 1000000000
+                    if y_pb.min()<0.00001:
+                        y_pb = y_pb * (0.00001/y_pb.min())
+                
                 
                 y_pb_all.append(y_pb)
                 
@@ -191,20 +196,27 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
             
             #y_prediction_bin = lb.transform(y_prediction)
 
-
+               
+            
             personalThresh_method(y_real_bin, y_pb_all, estim_descr, path, targetfpr=0.01)
             
+            
+            
             masq_y_real_bin = 1 - y_real_bin
-            masq_y_pb_all =  - y_pb_all            
+            masq_y_pb_all =  - y_pb_all
+            
+            
+
             mfpr,mtpr, mthr = metrics.roc_curve(masq_y_real_bin.ravel(), masq_y_pb_all.ravel())
 
-            
-                
             mauc = metrics.auc(mfpr,mtpr)
-            mlimit = 0.01
-            maucbl = auc_bylimit(mfpr,mtpr, limit=mlimit)            
-            maucbl = maucbl*(1/mlimit)
-
+            try:
+                mlimit = 0.01
+                maucbl = auc_bylimit(mfpr,mtpr, limit=mlimit)            
+                maucbl = maucbl*(1/mlimit)
+            except:
+                maucbl = 0.0
+                
             
 
 
@@ -336,8 +348,8 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
     rocsax.plot([0,1], [0,1], 'b--', lw=0.6)
     #rocsax.set_xlim([0,1])
     rocsax.set_ylim([0,1])
-    rocsax.set_xlabel('FALSE POSITIVE (%)')
-    rocsax.set_ylabel('TRUE POSITIVE (%)')
+    rocsax.set_xlabel('FALSE POSITIVE')
+    rocsax.set_ylabel('TRUE POSITIVE')
     rocsax.grid(b=True ,which='major')
     rocsax.set_yticks(yticks)
     rocs.tight_layout()

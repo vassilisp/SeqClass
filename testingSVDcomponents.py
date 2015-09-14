@@ -177,7 +177,7 @@ div = 200
 Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
 
 #%%
-#Xdiv1, Ydiv1, rep = rebatcher.single_rebatcher2(X,Y, div)
+Xdiv1, Ydiv1, rep = rebatcher.single_rebatcher2(X,Y, div)
 #Xdiv2, Ydiv2, rep = rebatcher.single_rebatcher2(X,Y, div, acc=False)
 #%%
 #Xdiv3, Ydiv3, rep = rebatcher.single_rebatcher2(X,Y, div, acc=True)
