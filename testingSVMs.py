@@ -26,12 +26,13 @@ proID = 'pro288817'
 tokens = 3
 
 exeTime = time.strftime('%d%m_%H%M')
+dateTime = time.strftime('%d%m')
 
 from reporter import Reporter
 
 genReport = Reporter()
 genReport.new_report('GridSearch for SVM C value')
-def tester(Xor, Yor, proID, token, div, path):
+def tester(Xor, Yor, proID, token, div, path, dividivi):
     #%%
     localreport = Reporter()
     localreport.subreport(str(proID)+'_'+str(token)+'_'+str(div))
@@ -40,7 +41,7 @@ def tester(Xor, Yor, proID, token, div, path):
         cv = StratifiedKFold(Y, 4)
         repor.report('using div: ' + str(div))
     else:
-        X,Y, inter, repor = rebatcher.single_rebatcher2(Xor, Yor, 50, acc=True, min_div=100, max_div=250, get_inter=True)
+        X,Y, inter, repor = rebatcher.single_rebatcher2(Xor, Yor, dividivi, acc=True, min_div=100, max_div=250, get_inter=True)
         cv = MasquerFold(Yor, inter) 
         repor.report('using sliding window ' + str(div))
                 
@@ -117,32 +118,37 @@ def tester(Xor, Yor, proID, token, div, path):
 
 
 if __name__ == '__main__':
-
-    #proIDs = ['pro288817','pro288955', 'pro288840']
-    proIDs = ['pro288817',]
-    #tokens = [1,2,3]
-    tokens = [2,]
+    
+    
+    reporting = Reporter()
+    reporting.new_report('TESTING SVC -NB with sliding windows')
+    proIDs = ['pro288817','pro288955']#, 'pro288840']
+    #proIDs = ['pro288840',]
+    tokens = [1,2,3]
+    #tokens = [2,]
     pp = [True, False]
-    pp = [False,]
+    #pp = [False,]
     classifier_dic = loadclassifiers()
 
     #div = simple and sliding
 
     #divers_sliding = {batchN:25, min_div:100, max_div:200}
     #divers_simple = {batchN:100, min_div:0, max_div:0}
+
+    divis = [10,25,50]
     from itertools import product    
-    for pages,proID in product(pp, proIDs):
+    for pages,proID,divi in product(pp, proIDs, divis):
         for tok in tokens:
             estimators = {}
-            #estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
+            estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
             estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
 ##----------(REMOVED FROM HERE)         ------------------------
             
 
-            div = 'sliding50100250'
+            div = 'sliding' + str(divi) + '100300'
             print('RUNNING ---sliding window---')
             method = 'T' + str(tok) +'-SVM-P('+str(pages)+')-'  +proID                
-            path = Globals.getProcessIDPath(method, exeTime)               
+            path = Globals.getProcessIDPath(method, exeTime, dateTime)               
             #Loading data
             X, Y = LoadingTestData.loadTestData(proID, 'clientId',tok, onlyPages=pages)
             
@@ -153,10 +159,14 @@ if __name__ == '__main__':
             #best_estimators.update(entry)
             
             #choose divider method - many options such as simple, accumulating and sliding window
-            Xdiv, Ydiv, inter, rep = rebatcher.single_rebatcher2(X,Y, 50, acc=True, min_div=100, max_div=300, get_inter=True)
+            Xdiv, Ydiv, inter, rep = rebatcher.single_rebatcher2(X,Y, divi, acc=True, min_div=100, max_div=300, get_inter=True)
             mcv = MasquerFold(Y, inter, n_folds=4)
             
-            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv) 
+            rep.saveReport(path, 'SLIDING REPORT')
+            reporting.concat_report(rep)
+            reporting.saveReport(path, 'CUM_OVERALL SLIDING REPORT')
+            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv)
+    reporting.saveReport(path, 'FINAL SLIDING_REPORT')
 #%%
 #_______________________________________________________
 """

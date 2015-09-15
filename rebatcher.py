@@ -128,7 +128,7 @@ def single_rebatcher2(X, Y, batchN, pardon = 0.25, acc=False, min_div = 0, max_d
                 inter_buf.append(i)
         
         x_remaining = A[stop:]
-        if (len(x_remaining) <= pardon_down * batchN) and (batchInA != 0):
+        if (len(x_remaining) <= pardon_down * batchN) and (batchInA != 0) and (len(X_buf)>0):
             if (len(X_buf[-1])>min_div):
                 X_buf[-1] = X_buf[-1] + ' ' + ' '.join(x_remaining)
         elif len(x_remaining) >= pardon_up * batchN:

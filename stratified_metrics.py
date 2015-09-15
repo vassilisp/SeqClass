@@ -863,10 +863,7 @@ def EVALUATE_TOPSCORES(kepttopscores, path, method):
     plt.close()
     
     #%%
-def loadandrun(path):
-    import glob
-    search_path = path + '*.pickle'
-    #print glob.glob()
+
     
 if __name__ == "__main__":
     from sklearn.datasets import make_classification, load_iris

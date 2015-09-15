@@ -39,10 +39,13 @@ def getResultsPATH():
     
     return directory + '/'
     
-def getProcessIDPath(processID, exeTime):
-    path = processID + '_'+ exeTime
-    full_path = mkdir_RR(path)
-    
+def getProcessIDPath(processID, exeTime, date=None):
+    if date ==None:
+        path = processID + '_'+ exeTime
+    else:
+        path = date + '/' + processID + '_'+ exeTime
+        
+    full_path = mkdir_RR(path)    
     return full_path
     
 def clfColors(clf):
