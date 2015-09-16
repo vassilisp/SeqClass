@@ -40,6 +40,12 @@ def getResultsPATH():
     return directory + '/'
     
 def getProcessIDPath(processID, exeTime, date=None):
+    """
+    Creates and returns a path for this specific processID executed at exeTime.
+    Given a date argument, it creates a Parent folder with that date to store
+    the results
+    """
+    
     if date ==None:
         path = processID + '_'+ exeTime
     else:

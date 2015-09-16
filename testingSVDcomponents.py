@@ -165,8 +165,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 #%%
 scale = False
 DR = 'svd'
-nmax=3
-nmin=3
+nmax=6
+nmin=1
 
 proID = 'pro48937'
 tokens = 2
@@ -240,6 +240,7 @@ else:
     XX = svd.transform(X_fv)[:,:n_comp2]
     XX = svd.transform(X_fv)
 #%%
+"""
 #%%
 from sklearn.manifold import MDS
 from sklearn.manifold import Isomap
@@ -251,6 +252,7 @@ print(t3)
 
 
 #%%
+
 res_iso = iso.transform(X_s.toarray())
 XX= res_iso
 #%%
@@ -275,7 +277,7 @@ print(t5)
 #%%
 XX = res_tsne
 #%%
-
+"""
 #%%    
 
 #%%

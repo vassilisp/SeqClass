@@ -121,6 +121,59 @@ if __name__ == '__main__':
     
     
     reporting = Reporter()
+    reporting.new_report('TESTING SVC -NB WITH FIXED BLOCKS')
+    proIDs = ['pro288817','pro288955']#, 'pro288840']
+    #proIDs = ['pro288840',]
+    tokens = [1,2,3]
+    #tokens = [2,]
+    pp = [False, True]
+    #pp = [False,]
+    dividers = [200, 100, 50, 20, 10, 5, 2]
+    
+    classifier_dic = loadclassifiers()
+    
+
+    from itertools import product
+    for pages,proID, tok in product(pp,proIDs, tokens):
+        
+        estimators = {}
+        estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
+        estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
+
+        X, Y = LoadingTestData.loadTestData(proID, 'clientId',tok, onlyPages=pages)
+        
+        for div in dividers:
+            
+            #setting up path
+            method = 'T' + str(tok) +'-SVM-P('+str(pages)+')-'  +proID                
+            path = Globals.getProcessIDPath(method, exeTime, dateTime)
+
+
+            best_estimators = estimators.copy()
+            #grid search for optimized C parameter - can be omited
+            #entry = tester(X, Y, proID, tok, div, path)                
+            #best_estimators.update(entry)
+
+
+               
+                
+            #choose divider method - many options such as simple, accumulating and sliding window
+            Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
+            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))            
+            
+        
+
+
+
+
+
+
+
+
+
+
+'''
+    reporting = Reporter()
     reporting.new_report('TESTING SVC -NB with sliding windows')
     proIDs = ['pro288817','pro288955']#, 'pro288840']
     #proIDs = ['pro288840',]
@@ -134,6 +187,7 @@ if __name__ == '__main__':
 
     #divers_sliding = {batchN:25, min_div:100, max_div:200}
     #divers_simple = {batchN:100, min_div:0, max_div:0}
+
 
     divis = [10,25,50]
     from itertools import product    
@@ -167,6 +221,8 @@ if __name__ == '__main__':
             reporting.saveReport(path, 'CUM_OVERALL SLIDING REPORT')
             EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv)
     reporting.saveReport(path, 'FINAL SLIDING_REPORT')
+    
+'''
 #%%
 #_______________________________________________________
 """
