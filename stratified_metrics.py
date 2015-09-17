@@ -27,12 +27,14 @@ import sys
 
 import json
 
-markers = ['-','-+','-o','-x','->', '--', ':', ':+','--x','--o','--+','-->','--D','-D','-*','-.']
+markers = ['-x','-+','-o','-','->', '--', ':', ':+','--x','--o','--+','-->','--D','-D','-*','-.']
 import itertools
 
 #%%
-def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
+def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None, addPersonalThrMarkers = False):
     styles = itertools.cycle(markers)
+    
+
     
     t0 = time()
     if cv == None:
@@ -196,9 +198,28 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
             
             #y_prediction_bin = lb.transform(y_prediction)
 
-               
-            
             personalThresh_method(y_real_bin, y_pb_all, estim_descr, path, targetfpr=0.01)
+            personalThresh_method(y_real_bin, y_pb_all, estim_descr, path, targetfpr=0.1)
+            if addPersonalThrMarkers == True:
+                res_pers_fpr = []
+                res_pers_tpr = []
+                for tarfpr in [0.01, 0.03,0.06, 0.1]:
+                    res_fpr,res_tpr = personalThresh_method(y_real_bin, y_pb_all, estim_descr, path, targetfpr=tarfpr, plot=False)
+                    res_pers_fpr.append(res_fpr)
+                    res_pers_tpr.append(res_tpr)
+                res_pers_fpr = np.asarray(res_pers_fpr)
+                res_pers_tpr = np.asarray(res_pers_tpr)
+                
+                extra_marker = cst[-2:]
+                if extra_marker == '--':
+                    extra_marker == 'H'
+                elif extra_marker == '-':
+                    extra_marker = 'd'
+                else:
+                    extra_marker = extra_marker[-1]
+                    
+                
+                
             
             
             
@@ -218,8 +239,10 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
                 maucbl = 0.0
                 
             
-
-
+            
+            from scorehistos import scoreHisto
+            
+            scoreHisto(masq_y_real_bin, masq_y_pb_all, estim_descr, path)
 
             #testing again
             #mfpr[0] = 0
@@ -232,8 +255,11 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
             mtpr = mtpr[kis]
             mthr = mthr[kis]
             
-            rocsax.plot(mfpr, mtpr, cst, lw=0.8, label= estim_descr+' auc: %0.3f / %0.4f' % (mauc, maucbl), markevery=0.1)
+            baseL, = rocsax.plot(mfpr, mtpr, cst, lw=0.8, label= estim_descr+' auc: %0.3f / %0.4f' % (mauc, maucbl), markevery=0.1)
             
+            
+            if addPersonalThrMarkers == True:
+                rocsax.plot(res_pers_fpr, res_pers_tpr, ls='.', color = baseL.get_color(), alpha=0.5, marker=extra_marker, markersize=12)
             
             mean_tpr = mtpr
             mean_fpr = mfpr
@@ -254,11 +280,16 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
             mean_ma[0] = 1
             mean_ma[-1] = 0
             
-            falseax.plot(mean_fpr, mean_ma,cst, lw=0.8, label= estim_descr+' auc: %0.3f'% mean_auc, markevery=0.1 )
-            falseLax.plot(mean_fpr, mean_ma,cst, lw=0.8, label= estim_descr+' auc: %0.3f' % mean_auc, markevery=0.1 )
+            baseL, = falseax.plot(mean_fpr, mean_ma,cst, lw=0.8, label= estim_descr+' auc: %0.3f'% mean_auc, markevery=0.1 )
+            baseL, = falseLax.plot(mean_fpr, mean_ma,cst, lw=0.8, label= estim_descr+' auc: %0.3f' % mean_auc, markevery=0.1 )
             ttt = 1-mean_tpr
             tosave = [mean_fpr.tolist(), ttt.tolist()]        
             savejson(tosave, path, method + '_' + estim_descr + '___missedalarms_DATA')
+            
+            if addPersonalThrMarkers == True:
+                pers_ma = 1 - res_pers_tpr
+                falseax.plot(res_pers_fpr, pers_ma, ls='.', color = baseL.get_color(), alpha=0.5, marker=extra_marker, markersize=12)
+                falseLax.plot(res_pers_fpr, pers_ma, ls='.', color = baseL.get_color(), alpha=0.5,marker=extra_marker, markersize=12)
             
             train_times = t_train.mean(axis=0)
             std_train = t_train.std(axis=0)
@@ -324,8 +355,12 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None):
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.0733)
             #graph_confusion_pb(y_real_bin, y_pb_all, estim_descr, path, thresh=0.1)
 
-            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr ,path, targetfpr = 0.01)            
-            disc_fpr,disc_tpr, thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.01)            
+            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr ,path, targetfpr = 0.01)
+            plotPersonalFprTpr(y_real_bin, y_pb_all, estim_descr ,path, targetfpr = 0.1)            
+            disc_fpr,disc_tpr, thr_byfpr = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.01)
+            disc_fpr1,disc_tpr1, thr_byfpr1 = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.1)
+            disc_fpr5,disc_tpr5, thr_byfpr5 = predict_by_fpr(y_real_bin, y_pb_all, target_fpr=0.05)
+            scoreHisto(masq_y_real_bin, masq_y_pb_all, estim_descr +'tfpr', path, [-thr_byfpr,-thr_byfpr1, -thr_byfpr5])            
             if thr_byfpr != -1:
                 graph_confusion_pb(y_real_bin, y_pb_all, estim_descr + '_bytargetfpr', path, thresh=thr_byfpr)
             
@@ -656,7 +691,7 @@ def graph_confusion2(Y_true, Y_predict, label, path):
 
 #%%
 
-def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01):
+def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01, plot=True):
     t_y_real = y_real_bin.T
     t_y_pb = y_pb_all.T
     y_stats = []
@@ -685,41 +720,44 @@ def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01):
     y_p_predict = y_p_predict.T
     
     
-    fig, ax = plt.subplots(figsize=(9,6))    
-    jj = np.arange(len(personalTpr))+1
-    
-    width = 0.35
-    p1 = ax.bar(jj, personalTpr, width, color='g')
-    p2 = ax.bar(jj-width, personalFpr, width, color='r')
-    
-
     res = metrics.confusion_matrix(y_real_bin.ravel(), y_p_predict.ravel())
     afpr = res[1,0]/(res[1,0]+res[1,1])
     atpr = res[0,0]/(res[0,0]+res[0,1])
-
     
-    plt.title(label + ' (personalFpr<' + str(targetfpr) + ', overallFpr=' + str(round(afpr,4)) +', overallTpr=' +str(round(atpr,4)) + ')')
-    ax.set_xlabel('Users')
-    ax.set_ylabel('Rates')
+    if plot == True:
     
-    ax.plot((0,len(personalTpr)+1), (targetfpr,targetfpr),'r-', lw=0.5)
-    ax.plot((0,len(personalTpr)+1), (atpr,atpr),'g-', lw=0.5 )
-    ax.set_xlim(0,len(personalTpr)+1)
-    ax.set_ylim(0,1)
-    ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
-    fig.tight_layout()
-    #autolabel(p1)    
-    #autolabel(p2)
+        fig, ax = plt.subplots(figsize=(9,6))    
+        jj = np.arange(len(personalTpr))+1
+        
+        width = 0.35
+        p1 = ax.bar(jj, personalTpr, width, color='g')
+        p2 = ax.bar(jj-width, personalFpr, width, color='r')
     
-    savefig(fig, path + 'my/', label + 'ind_tpr_personal_thr.svg')
+        
+        plt.title(label + ' (personalFpr<' + str(targetfpr) + ', overallFpr=' + str(round(afpr,4)) +', overallTpr=' +str(round(atpr,4)) + ')')
+        ax.set_xlabel('Users')
+        ax.set_ylabel('Rates')
+        
+        ax.plot((0,len(personalTpr)+1), (targetfpr,targetfpr),'r-', lw=0.5)
+        ax.plot((0,len(personalTpr)+1), (atpr,atpr),'g-', lw=0.5 )
+        ax.set_xlim(0,len(personalTpr)+1)
+        ax.set_ylim(0,1)
+        ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
+        ax.set_yticks(np.arange(0,1,0.1))
+        fig.tight_layout()
+        #autolabel(p1)    
+        #autolabel(p2)
+        
+        savefig(fig, path + 'my/', label + str(targetfpr).split('.')[-1] + '_ind_tpr_personal_thr.svg')
+        
     
-
+        
+        savejson(y_stats, path + 'my/', label + '_personal_fpr')
+        savejson(y_stats2, path + 'my/', label + '_personal_FPR2TPR')
+        graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=False)
+        graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=True)
     
-    savejson(y_stats, path + 'my/', label + '_personal_fpr')
-    savejson(y_stats2, path + 'my/', label + '_personal_FPR2TPR')
-    graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=False)
-    graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=True)
-   
+    return afpr, atpr
         
 def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
     t_y_real = y_real_bin.T
@@ -753,6 +791,7 @@ def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
     ax.set_ylabel('Rates')
     ax.set_xlim(0,len(personal_a_Tpr)+1)
     ax.set_ylim(0,1)
+    ax.set_yticks(np.arange(0,1,0.1))
     ax.plot((0,len(personal_a_Tpr)+1), (targetfpr,targetfpr), 'r-', lw=0.5)
     ax.plot((0,len(personal_a_Tpr)+1), (atpr,atpr), 'g-', lw=0.5)
     ax.legend( (p2[0],p1[0]), ('FPR', 'TPR'), loc='best' )
@@ -760,7 +799,7 @@ def plotPersonalFprTpr(y_real_bin, y_pb_all, label, path, targetfpr):
     #autolabel(p1)    
     #autolabel(p2)
     
-    savefig(fig, path + 'my/', label+'ovrl_tpr_personal_thr.svg')
+    savefig(fig, path + 'my/', label+'ovrl_tpr_' + str(targetfpr).split('.')[-1] + '_personal_thr.svg')
     
         
 """    
@@ -811,7 +850,7 @@ def savefig(fig, path, filename, close=True):
         return
         
     mkdir_LR(path)
-    form = 'png'
+    form = 'svg'
     fig.savefig(path + filename + '.' + form, dpi=300, format=form )
     
     if close == True:

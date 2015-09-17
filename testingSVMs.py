@@ -122,19 +122,24 @@ if __name__ == '__main__':
     
     reporting = Reporter()
     reporting.new_report('TESTING SVC -NB WITH FIXED BLOCKS')
-    proIDs = ['pro288817','pro288955']#, 'pro288840']
-    #proIDs = ['pro288840',]
-    tokens = [1,2,3]
-    #tokens = [2,]
-    pp = [False, True]
-    #pp = [False,]
-    dividers = [200, 100, 50, 20, 10, 5, 2]
+
+    proIDs = ['pro288817',]    
+    #proIDs = ['pro288817','pro288955']#, 'pro288840']
+    
+    tokens = [2,]
+    #tokens = [1,2,3]
+
+    #pp = [False, True]
+    pp = [False,]
+
+    #dividers = [200, 100, 50, 20, 10, 5]
+    dividers = [100]    
     
     classifier_dic = loadclassifiers()
     
 
     from itertools import product
-    for pages,proID, tok in product(pp,proIDs, tokens):
+    for proID,pages, tok in product(proIDs, pp, tokens):
         
         estimators = {}
         estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
@@ -144,22 +149,24 @@ if __name__ == '__main__':
         
         for div in dividers:
             
+            
             #setting up path
-            method = 'T' + str(tok) +'-SVM-P('+str(pages)+')-'  +proID                
+            method = 'T' + str(tok) +'-SVM-TTP('+str(pages)+')-'  +proID                
             path = Globals.getProcessIDPath(method, exeTime, dateTime)
 
-
+    
             best_estimators = estimators.copy()
             #grid search for optimized C parameter - can be omited
             #entry = tester(X, Y, proID, tok, div, path)                
             #best_estimators.update(entry)
 
 
-               
+            reporting.subreport('Running ' + method + ' with DIV: ' + str(div))
                 
             #choose divider method - many options such as simple, accumulating and sliding window
             Xdiv, Ydiv, rep = rebatcher.single_rebatcher(X,Y, div)
-            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div))            
+            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), 
+                          addPersonalThrMarkers=True)            
             
         
 
