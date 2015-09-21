@@ -86,6 +86,9 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None, addPersonalThrMar
     fmeasure, fmeasurax = plt.subplots(figsize=(8,6))
     fmeasurax.hold(True)
     
+    precr, precrax = plt.subplots(figsize=(8,6))
+    precrax.hold(True)    
+    
     labels = []
     
     p2 = []
@@ -276,6 +279,18 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None, addPersonalThrMar
             #tosave = [mean_fpr.tolist(), mean_tpr.tolist()]
             #savejson(tosave,path, method + '_' + estim_descr + '___roccurve_DATA')
     
+    
+            uprec, urec,_ = metrics.precision_recall_curve(y_real_bin.ravel(), y_pb_all.ravel())
+            kis = keepsignicants(uprec, urec)
+            uprec = uprec[kis]
+            urec = urec[kis]
+            print('#'*50)
+            print(uprec.shape)
+            print('#'*50)
+            pr_auc = metrics.average_precision_score(y_real_bin.ravel(), y_pb_all.ravel())
+            precrax.plot(urec, uprec, cst, lw=0.8, label = estim_descr + ' auc: %0.3f' % (pr_auc), markevery=0.1)
+            
+            
             mean_ma = 1-mean_tpr
             mean_ma[0] = 1
             mean_ma[-1] = 0
@@ -388,6 +403,18 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None, addPersonalThrMar
     rocsax.grid(b=True ,which='major')
     rocsax.set_yticks(yticks)
     rocs.tight_layout()
+    
+    precrax.legend(loc='best')
+    #precrax.plot([0,1], [0,1], 'b--', lw=0.6)
+    #rocsax.set_xlim([0,1])
+    precrax.set_ylim([0,1])
+    precrax.set_xlabel('RECALL')
+    precrax.set_ylabel('PRECISION')
+    precrax.grid(b=True ,which='major')
+    precrax.set_yticks(yticks)
+    precr.tight_layout()
+    
+    savefig(precr, path,  method + '_PRcurve',close=True)
 
     #rocsax.set_xscale('log')
     try:
@@ -438,6 +465,16 @@ def EVALUATE_TEST(X,Y, kept_estimators, path, method, cv=None, addPersonalThrMar
     rocsax.set_xscale('log')
     rocsax.grid(b=True, which='minor')
     savefig(rocs, path,  method + '_roc_curvelog')
+    
+    precrax.set_xlim([0.001,1])
+    precrax.set_ylim([0,1])
+    
+    precrax.legend()
+    precrax.legend(loc='lower right')
+    precrax.set_yticks(yticks)
+    precrax.set_xscale('log')
+    precrax.grid(b=True, which='minor')
+    savefig(precr, path,  method + '_PR_curveLog')
     
     savefig(scor, path, method + '_scores')
     savefig(timebars, path, method + '_traintesttimes')
@@ -754,8 +791,8 @@ def personalThresh_method(y_real_bin, y_pb_all, label, path, targetfpr=0.01, plo
         
         savejson(y_stats, path + 'my/', label + '_personal_fpr')
         savejson(y_stats2, path + 'my/', label + '_personal_FPR2TPR')
-        graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=False)
-        graph_bin_confusion(y_real_bin, y_p_predict, label+'_personal', path, masquerade=True)
+        graph_bin_confusion(y_real_bin, y_p_predict, label + '_' + str(targetfpr).split('.')[-1] + '_personal', path, masquerade=False)
+        graph_bin_confusion(y_real_bin, y_p_predict, label + '_' + str(targetfpr).split('.')[-1] +'_personal', path, masquerade=True)
     
     return afpr, atpr
         
@@ -850,8 +887,8 @@ def savefig(fig, path, filename, close=True):
         return
         
     mkdir_LR(path)
-    form = 'svg'
-    fig.savefig(path + filename + '.' + form, dpi=300, format=form )
+    form = 'png'
+    fig.savefig(path + filename + '.' + form, dpi=600, format=form )
     
     if close == True:
         try:
@@ -879,6 +916,26 @@ def keepsignicants(fpr,tpr):
     print('REDUCED FROM', len(fpr), 'TO', len(ki))
     print('='*50)
     return ki
+    
+def keepsignificants2(x,y):
+    ki = np.zeros(x.shape)
+    ki[[0,1,-1]] = True
+    
+    a = (x[0] - x[1]) / (y[0] - y[1])
+    b = y[0] - (a* x[0])
+    
+    for i, (tx, ty) in enumerate(x,y):
+        if ty == (a*tx) + b:
+            pass
+        else:
+            ki[i-1] = True
+            
+            a = (x[i-1] - x[i]) / (y[i-1] - y[i])
+            b = y[i] - (a* x[i])
+    
+    return ki
+
+    
     
 #%%
 def EVALUATE_TOPSCORES(kepttopscores, path, method):

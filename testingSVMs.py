@@ -120,27 +120,30 @@ def tester(Xor, Yor, proID, token, div, path, dividivi):
 if __name__ == '__main__':
     
     
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    dDate = dateTime    
+    dateTime = dDate + '_blocks'    
     reporting = Reporter()
     reporting.new_report('TESTING SVC -NB WITH FIXED BLOCKS')
 
-    proIDs = ['pro288817',]    
-    #proIDs = ['pro288817','pro288955']#, 'pro288840']
+    #proIDs = ['pro288817',]    
+    proIDs = ['pro288817','pro288955']#, 'pro288840']
     
-    tokens = [2,]
-    #tokens = [1,2,3]
+    #tokens = [2,]
+    tokens = [1,2,3]
 
-    #pp = [False, True]
-    pp = [False,]
+    pp = [False, True]
+    #pp = [False,]
 
-    #dividers = [200, 100, 50, 20, 10, 5]
-    dividers = [100]    
+    dividers = [200, 100, 50, 20, 10, 5]
+    #dividers = [100]    
     
     classifier_dic = loadclassifiers()
     
-
+    """
     from itertools import product
     for proID,pages, tok in product(proIDs, pp, tokens):
-        
+
         estimators = {}
         estimators.update({'(200)LinearSVC': classifier_dic['LinearSVC ']})
         estimators.update({'(200)MultinomialNB': classifier_dic['MultinomialNB ']})
@@ -169,17 +172,10 @@ if __name__ == '__main__':
                           addPersonalThrMarkers=True)            
             
         
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    """
+    dateTime = dDate + '_sliding'
 
-
-
-
-
-
-
-
-
-
-'''
     reporting = Reporter()
     reporting.new_report('TESTING SVC -NB with sliding windows')
     proIDs = ['pro288817','pro288955']#, 'pro288840']
@@ -195,8 +191,8 @@ if __name__ == '__main__':
     #divers_sliding = {batchN:25, min_div:100, max_div:200}
     #divers_simple = {batchN:100, min_div:0, max_div:0}
 
-
-    divis = [10,25,50]
+    
+    divis = [50,25,10]
     from itertools import product    
     for pages,proID,divi in product(pp, proIDs, divis):
         for tok in tokens:
@@ -226,10 +222,11 @@ if __name__ == '__main__':
             rep.saveReport(path, 'SLIDING REPORT')
             reporting.concat_report(rep)
             reporting.saveReport(path, 'CUM_OVERALL SLIDING REPORT')
-            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv)
+            EVALUATE_TEST(Xdiv,Ydiv, best_estimators, path+str(div)+'/', method + '_' + str(div), cv = mcv,
+                          addPersonalThrMarkers=True)
     reporting.saveReport(path, 'FINAL SLIDING_REPORT')
     
-'''
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #%%
 #_______________________________________________________
 """
